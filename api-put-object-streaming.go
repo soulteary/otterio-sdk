@@ -57,8 +57,8 @@ func (c *Client) putObjectMultipartStream(ctx context.Context, bucketName, objec
 		// Verify if multipart functionality is not available, if not
 		// fall back to single PutObject operation.
 		if errResp.Code == AccessDenied && strings.Contains(errResp.Message, "Access Denied") {
-			// Verify if size of reader is greater than '5GiB'.
-			if size > maxSinglePutObjectSize {
+			// Verify if size of reader is greater than the single PUT limit.
+			if maxSinglePutObjectSize := c.limits.maxSinglePutObjectSize(); size > maxSinglePutObjectSize {
 				return UploadInfo{}, errEntityTooLarge(size, maxSinglePutObjectSize, bucketName, objectName)
 			}
 			// Fall back to uploading as single PutObject operation.
@@ -104,7 +104,7 @@ func (c *Client) putObjectMultipartStreamFromReadAt(ctx context.Context, bucketN
 	}
 
 	// Calculate the optimal parts info for a given size.
-	totalPartsCount, partSize, lastPartSize, err := OptimalPartInfo(size, opts.PartSize)
+	totalPartsCount, partSize, lastPartSize, err := c.optimalPartInfo(size, opts.PartSize)
 	if err != nil {
 		return UploadInfo{}, err
 	}
@@ -302,7 +302,7 @@ func (c *Client) putObjectMultipartStreamOptionalChecksum(ctx context.Context, b
 	}
 
 	// Calculate the optimal parts info for a given size.
-	totalPartsCount, partSize, lastPartSize, err := OptimalPartInfo(size, opts.PartSize)
+	totalPartsCount, partSize, lastPartSize, err := c.optimalPartInfo(size, opts.PartSize)
 	if err != nil {
 		return UploadInfo{}, err
 	}
@@ -461,7 +461,7 @@ func (c *Client) putObjectMultipartStreamParallel(ctx context.Context, bucketNam
 	defer cancel()
 
 	// Calculate the optimal parts info for a given size.
-	totalPartsCount, partSize, _, err := OptimalPartInfo(-1, opts.PartSize)
+	totalPartsCount, partSize, _, err := c.optimalPartInfo(-1, opts.PartSize)
 	if err != nil {
 		return UploadInfo{}, err
 	}
@@ -504,6 +504,7 @@ func (c *Client) putObjectMultipartStreamParallel(ctx context.Context, bucketNam
 
 	// Part number always starts with '1'.
 	var partNumber int
+	var lastErr error
 	for partNumber = 1; partNumber <= totalPartsCount; partNumber++ {
 		// Proceed to upload the part.
 		var buf []byte
@@ -520,6 +521,7 @@ func (c *Client) putObjectMultipartStreamParallel(ctx context.Context, bucketNam
 		}
 
 		length, rerr := readFull(reader, buf)
+		lastErr = rerr
 		if rerr == io.EOF && partNumber > 1 {
 			// Done
 			break
@@ -596,6 +598,14 @@ func (c *Client) putObjectMultipartStreamParallel(ctx context.Context, bucketNam
 	case err = <-errCh:
 		return UploadInfo{}, err
 	default:
+	}
+
+	// A nil read error on the last allowed part means the reader was never
+	// drained; completing here would store a truncated object.
+	if lastErr == nil {
+		if err = errIfMoreData(reader, totalUploadedSize, int64(totalPartsCount), bucketName, objectName); err != nil {
+			return UploadInfo{}, err
+		}
 	}
 
 	// Complete multipart upload.
