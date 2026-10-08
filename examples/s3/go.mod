@@ -4,9 +4,9 @@ go 1.27.1
 
 require (
 	github.com/cheggaaa/pb v1.0.29
+	github.com/soulteary/otterio-kits/sio v0.5.2
 	// Overridden by `replace` below, to point all versions at the local otterio-sdk source, so version shouldn't matter here.
 	github.com/soulteary/otterio-sdk/v7 v7.0.73
-	github.com/soulteary/otterio-kits/sio v0.5.2
 	golang.org/x/crypto v0.57.0
 )
 
