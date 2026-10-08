@@ -3,6 +3,9 @@ name: Build (RDMA)
 on:
   pull_request:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref }}
   cancel-in-progress: true
@@ -62,6 +65,32 @@ jobs:
         sudo apt-get -qy update || sudo apt-get -qy update || true
         sudo apt-get -qy install cmake libibverbs-dev
 
+    - name: Identify the native dependency cache
+      id: native-cache
+      env:
+        MATRIX_ARCH: ${{ matrix.config.arch }}
+      run: |
+        mkdir -p "$RUNNER_TEMP/vcpkg-archives"
+        echo "VCPKG_DEFAULT_BINARY_CACHE=$RUNNER_TEMP/vcpkg-archives" >> "$GITHUB_ENV"
+        # vcpkg also checks each package ABI. Keep the outer cache specific to
+        # the image, compiler, pinned sources and the build options we use.
+        cache_identity=$( {
+          printf '%s\n' "$RUNNER_OS" "$RUNNER_ARCH" "${ImageOS:-}" "${ImageVersion:-}" "$MATRIX_ARCH"
+          c++ --version
+          cmake --version
+          dpkg-query -W -f='${Package}=${Version}\n' libibverbs-dev libnl-3-dev libnl-route-3-dev
+          git -C minio-cpp rev-parse HEAD
+          git -C vcpkg rev-parse HEAD
+          printf '%s\n' 'Release;BUILD_SHARED_LIBS=ON;MINIO_CPP_ENABLE_RDMA=ON'
+        } | sha256sum | cut -d ' ' -f 1)
+        echo "identity=$cache_identity" >> "$GITHUB_OUTPUT"
+
+    - name: Cache vcpkg binary packages
+      uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+      with:
+        path: ${{ runner.temp }}/vcpkg-archives
+        key: sdk-vcpkg-v1-${{ steps.native-cache.outputs.identity }}-${{ hashFiles('minio-cpp/vcpkg.json', 'minio-cpp/vcpkg-configuration.json', 'minio-cpp/CMakeLists.txt') }}
+
     - name: Build and install libminiocpp.so with RDMA
       shell: bash
       env:
@@ -86,10 +115,14 @@ jobs:
         sudo cp -P "vendor/s3rdma/lib/${s3rdma_arch}"/* /usr/local/lib/
         sudo ldconfig
 
-    - name: Set up Go
-      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+    - uses: ./minio-go/.github/actions/setup-go-ci
       with:
-        go-version-file: minio-go/go.mod
+        purpose: rdma
+        cache-salt: ${{ steps.native-cache.outputs.identity }}
+        module-directory: minio-go
+        dependency-files: |
+          minio-go/go.mod
+          minio-go/go.sum
 
     - name: Build minio-go with -tags=rdma
       working-directory: minio-go
@@ -102,4 +135,4 @@ jobs:
     # ever executed, only compiled.
     - name: Test minio-go with -tags=rdma
       working-directory: minio-go
-      run: go test -tags=rdma -run 'RDMA' -v .
+      run: go test -tags=rdma -count=1 -run 'RDMA' -v .
