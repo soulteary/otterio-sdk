@@ -30,7 +30,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/soulteary/otterio-sdk/v7/pkg/credentials"
 )
 
 // TestNewHookSeekability verifies that the reader returned by newHook
