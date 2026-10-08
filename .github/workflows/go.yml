@@ -2,9 +2,6 @@ name: Build (Linux)
 
 on:
   pull_request:
-    branches:
-    - main
-    - master
 
 # This ensures that previous jobs for the PR are canceled when the PR is
 # updated.
