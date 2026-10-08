@@ -1,6 +1,6 @@
 module github.com/minio/minio-go/examples/s3
 
-go 1.25.0
+go 1.27.1
 
 // Overridden by `replace` below, to point all versions at the local minio-go source, so version shouldn't matter here.
 require github.com/minio/minio-go/v7 v7.0.73
