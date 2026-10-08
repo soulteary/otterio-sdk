@@ -10,9 +10,9 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/klauspost/compress v1.19.2
 	github.com/klauspost/crc32 v1.3.0
-	github.com/minio/crc64nvme v1.1.1
-	github.com/minio/md5-simd v1.1.2
 	github.com/rs/xid v1.6.0
+	github.com/soulteary/otterio-kits/crc64nvme v1.1.2
+	github.com/soulteary/otterio-kits/md5-simd v1.1.3
 	github.com/tinylib/msgp v1.6.4
 	github.com/zeebo/xxh3 v1.1.0
 	go.yaml.in/yaml/v3 v3.0.5
@@ -224,7 +224,7 @@ require (
 	golang.org/x/exp/typeparams v0.0.0-20260209203927-2842357ff358 // indirect
 	golang.org/x/mod v0.38.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.41.0 // indirect
 	golang.org/x/tools v0.48.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
