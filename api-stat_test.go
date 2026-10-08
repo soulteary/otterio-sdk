@@ -24,7 +24,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/soulteary/otterio-sdk/v7/pkg/credentials"
 )
 
 // newTestStatClient returns a Client pointed at an httptest server that

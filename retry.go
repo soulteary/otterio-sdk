@@ -27,7 +27,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/minio/minio-go/v7/pkg/set"
+	"github.com/soulteary/otterio-sdk/v7/pkg/set"
 )
 
 // MaxRetry is the maximum number of retries before stopping.
