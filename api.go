@@ -39,7 +39,7 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
-	md5simd "github.com/minio/md5-simd"
+	md5simd "github.com/soulteary/otterio-kits/md5-simd"
 	"github.com/soulteary/otterio-sdk/v7/pkg/credentials"
 	"github.com/soulteary/otterio-sdk/v7/pkg/kvcache"
 	"github.com/soulteary/otterio-sdk/v7/pkg/s3utils"
