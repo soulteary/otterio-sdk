@@ -40,13 +40,13 @@ This Code of Conduct applies both within project spaces and in public spaces whe
 Enforcement
 -----------
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project team at dev@min.io. The project team will review and investigate all complaints, and will respond in a way that it deems appropriate to the circumstances. The project team is obligated to maintain confidentiality with regard to the reporter of an incident. Further details of specific enforcement policies may be posted separately.
+Instances of abusive, harassing, or otherwise unacceptable behavior in this fork should be reported to the maintainers of [soulteary/otterio-sdk](https://github.com/soulteary/otterio-sdk), using a private contact channel listed on a maintainer's GitHub profile. If no private channel is listed, ask a maintainer for one without posting incident details. Do not send reports about this fork to the upstream MinIO team or publish private information in an issue. The project team will review and investigate all complaints, and will respond in a way that it deems appropriate to the circumstances. The project team is obligated to maintain confidentiality with regard to the reporter of an incident. Further details of specific enforcement policies may be posted separately.
 
 Project maintainers who do not follow or enforce the Code of Conduct in good faith may face temporary or permanent repercussions as determined by other members of the project's leadership.
 
 Attribution
 -----------
 
-This Code of Conduct is adapted from the [Contributor Covenant](http://contributor-covenant.org), version 1.4, available at [http://contributor-covenant.org/version/1/4](http://contributor-covenant.org/version/1/4/)
+This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org), version 1.4, available at [https://www.contributor-covenant.org/version/1/4](https://www.contributor-covenant.org/version/1/4/)
 
 This version includes a clarification to ensure that the code of conduct is in compliance with the free software licensing terms of the project.

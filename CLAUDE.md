@@ -1,124 +1,56 @@
-CLAUDE.md
-=========
+# Repository guide
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file records development commands and layout for OtterIO SDK. User-facing setup is in [README.md](./README.md); contribution and live-server test details are in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
-Commands
---------
+## Commands
 
-### Testing
+Use the Go version declared in `go.mod` (currently Go 1.27.1 or newer).
 
-```bash
-# Run all tests with race detection (requires MinIO server at localhost:9000)
-SERVER_ENDPOINT=localhost:9000 ACCESS_KEY=minioadmin SECRET_KEY=minioadmin ENABLE_HTTPS=1 MINT_MODE=full go test -race -v ./...
-
-# Run tests without race detection
-go test ./...
-
-# Run short tests only (no functional tests)
+```sh
+# Local checks without a storage server
 go test -short -race ./...
+go build ./...
 
-# Run functional tests
-go build -race functional_tests.go
-SERVER_ENDPOINT=localhost:9000 ACCESS_KEY=minioadmin SECRET_KEY=minioadmin ENABLE_HTTPS=1 MINT_MODE=full ./functional_tests
-
-# Run functional tests without TLS
-SERVER_ENDPOINT=localhost:9000 ACCESS_KEY=minioadmin SECRET_KEY=minioadmin ENABLE_HTTPS=0 MINT_MODE=full ./functional_tests
-```
-
-### Linting and Code Quality
-
-```bash
-# Run all checks (lint, test, examples, functional tests)
-make checks
-
-# Run linter only (includes govet, staticcheck, and other linters)
+# Linter pinned in go.mod; make vet is an alias
 make lint
 
-# Run golangci-lint directly
-golangci-lint run --timeout=5m --config ./.golangci.yml
-
-# Note: 'make vet' is now an alias for 'make lint' for backwards compatibility
-```
-
-### Building Examples
-
-```bash
-# Build all examples
+# Compile each independent example program
 make examples
-
-# Build a specific example
-cd examples/s3 && go build -mod=mod putobject.go
 ```
 
-Architecture
-------------
+`core_test.go` skips live-server tests when `SERVER_ENDPOINT` is unset or `-short` is enabled. To run those cases, set `SERVER_ENDPOINT`, `ACCESS_KEY`, `SECRET_KEY`, and `ENABLE_HTTPS`, then run `go test -race ./...`. They create and delete test data; use a disposable server.
 
-### Core Client Structure
+The separate functional program has a `mint` build constraint and can be compiled by naming its file:
 
-The MinIO Go SDK is organized around a central `Client` struct (api.go:52) that implements Amazon S3 compatible methods. Key architectural patterns:
+```sh
+go build -race -o /tmp/otterio-sdk-functional-tests functional_tests.go
+# Run only after exporting the test connection variables described above.
+MINT_MODE=full /tmp/otterio-sdk-functional-tests
+```
 
-1.	**Modular API Organization**: API methods are split into logical files:
+Without `SERVER_ENDPOINT`, the functional program defaults to the upstream public `play.min.io` endpoint. It covers extensions that are not implemented by every S3 service. See the CI workflows for the current test server setup.
 
-	-	`api-bucket-*.go`: Bucket operations (lifecycle, encryption, versioning, etc.)
-	-	`api-object-*.go`: Object operations (legal hold, retention, tagging, etc.)
-	-	`api-get-*.go`, `api-put-*.go`: GET and PUT operations
-	-	`api-list.go`: Listing operations
-	-	`api-stat.go`: Status/info operations
+`make checks` includes functional tests. The `make test`, `make functional-test`, and `make functional-test-notls` targets embed upstream localhost test credentials; use explicit commands when testing different credentials or endpoints.
 
-2.	**Credential Management**: The `pkg/credentials/` package provides various credential providers:
+The directories `examples/s3` and `examples/minio` are nested Go modules that replace the SDK dependency with the local checkout. Each file is a separate executable:
 
-	-	Static credentials
-	-	Environment variables (AWS/MinIO)
-	-	IAM roles
-	-	STS (Security Token Service) variants
-	-	File-based credentials
-	-	Chain provider for fallback mechanisms
+```sh
+cd examples/s3
+go build -o /tmp/otterio-sdk-listbuckets listbuckets.go
+```
 
-3.	**Request Signing**: The `pkg/signer/` package handles AWS signature versions:
+Configure endpoints, credentials, bucket names, and file paths before running examples. Do not build or run all their `main` functions as one package.
 
-	-	V2 signatures (legacy)
-	-	V4 signatures (standard)
-	-	Streaming signatures for large uploads
+## Layout and API conventions
 
-4.	**Transport Layer**: Custom HTTP transport with:
+The root module is `github.com/soulteary/otterio-sdk/v7`; the root Go package remains `minio`.
 
-	-	Retry logic with configurable max retries
-	-	Health status monitoring
-	-	Tracing support via httptrace
-	-	Bucket location caching (`bucketLocCache`\)
-	-	Session caching for credentials
+- `api.go` defines `Client`, `Options`, construction, transport, and request dispatch.
+- `api-bucket-*.go` and `api-object-*.go` contain bucket and object operations. `api-get-*.go`, `api-put-*.go`, `api-list.go`, and `api-stat.go` handle reads, writes, listing, and object metadata.
+- `pkg/credentials` supplies static, environment, file, IAM, and STS credential providers.
+- `pkg/signer` implements S3 request signing. Preserve protocol-required names when editing it.
+- `pkg/encrypt`, `pkg/notification`, `pkg/policy`, `pkg/lifecycle`, and `pkg/tags` provide operation-specific helpers.
+- Tests live next to implementation files; `functional_tests.go` is a separate live-server suite.
+- `docs/API.md` describes exported operations. Availability of an SDK method does not establish support by a particular server.
 
-5.	**Helper Packages**:
-
-	-	`pkg/encrypt/`: Server-side encryption utilities
-	-	`pkg/notification/`: Event notification handling
-	-	`pkg/policy/`: Bucket policy management
-	-	`pkg/lifecycle/`: Object lifecycle rules
-	-	`pkg/tags/`: Object and bucket tagging
-	-	`pkg/s3utils/`: S3 utility functions
-	-	`pkg/kvcache/`: Key-value caching
-	-	`pkg/singleflight/`: Deduplication of concurrent requests
-
-### Testing Strategy
-
--	Unit tests alongside implementation files (`*_test.go`\)
--	Comprehensive functional tests in `functional_tests.go` requiring a live MinIO server
--	Example programs in `examples/` directory demonstrating API usage
--	Build tag `//go:build mint` for integration tests
-
-### Error Handling
-
--	Custom error types in `api-error-response.go`
--	HTTP status code mapping
--	Retry logic for transient failures
--	Detailed error context preservation
-
-Important Patterns
-------------------
-
-1.	**Context Usage**: All API methods accept `context.Context` for cancellation and timeout control
-2.	**Options Pattern**: Methods use Options structs for optional parameters (e.g., `PutObjectOptions`, `GetObjectOptions`\)
-3.	**Streaming Support**: Large file operations use io.Reader/Writer interfaces for memory efficiency
-4.	**Bucket Lookup Types**: Supports both path-style and virtual-host-style S3 URLs
-5.	**MD5/SHA256 Hashing**: Configurable hash functions for integrity checks via `md5Hasher` and `sha256Hasher`
+Network operations use `context.Context` and operation-specific options. Check errors returned when reading lazy `GetObject` readers as well as errors returned when constructing them, and close readers when finished. Use the existing error types and `ToErrorResponse` where S3 error codes matter.
