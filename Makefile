@@ -1,5 +1,6 @@
 GOPATH := $(shell go env GOPATH)
 TMPDIR := $(shell mktemp -d)
+GOLANGCI_LINT ?= go tool golangci-lint
 
 all: checks
 
@@ -9,12 +10,12 @@ checks: lint test examples functional-test
 
 lint:
 	@echo "Running $@ check"
-	go tool golangci-lint run
+	$(GOLANGCI_LINT) run
 
 vet: lint
 
 test:
-	@GO111MODULE=on SERVER_ENDPOINT=localhost:9000 ACCESS_KEY=minioadmin SECRET_KEY=minioadmin ENABLE_HTTPS=1 MINT_MODE=full go test -race -v ./...
+	@GO111MODULE=on SERVER_ENDPOINT=localhost:9000 ACCESS_KEY=minioadmin SECRET_KEY=minioadmin ENABLE_HTTPS=1 MINT_MODE=full go test -race -count=1 -v ./...
 
 examples:
 	@echo "Building s3 examples"

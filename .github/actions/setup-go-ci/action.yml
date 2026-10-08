@@ -1,0 +1,57 @@
+name: Set up Go with a task-specific build cache
+description: Keep compiler caches separate from scanners and update them after each commit.
+inputs:
+  purpose:
+    description: Namespace for this job's compiler and module cache.
+    required: true
+  module-directory:
+    description: Directory containing the pinned go.mod.
+    default: .
+  dependency-files:
+    description: Module files that invalidate this job's cache.
+    default: |
+      go.mod
+      go.sum
+  cache-salt:
+    description: Additional native toolchain, ABI or build-options identity.
+    default: ''
+outputs:
+  identity:
+    description: Runner image, architecture and exact Go toolchain identity.
+    value: ${{ steps.cache.outputs.identity }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version-file: ${{ inputs.module-directory }}/go.mod
+        cache: false
+    - name: Identify the Go cache
+      id: cache
+      shell: bash
+      working-directory: ${{ inputs.module-directory }}
+      env:
+        CACHE_SALT: ${{ inputs.cache-salt }}
+      run: |
+        cache_identity=$( {
+          printf '%s\n' "$RUNNER_OS" "$RUNNER_ARCH" "${ImageOS:-}" "${ImageVersion:-}" "$CACHE_SALT"
+          go version
+          go env GOOS GOARCH
+        } | sha256sum | cut -d ' ' -f 1)
+        echo "identity=$cache_identity" >> "$GITHUB_OUTPUT"
+        echo "modules=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
+        echo "build=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
+    - name: Restore compiler and module cache
+      uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+      with:
+        path: |
+          ${{ steps.cache.outputs.modules }}
+          ${{ steps.cache.outputs.build }}
+        # Immutable cache entries get a new key per commit. The dependency
+        # prefix restores earlier successful builds without a thin scanner
+        # cache taking ownership of this job's compiler cache.
+        key: sdk-go-v1-${{ inputs.purpose }}-${{ steps.cache.outputs.identity }}-${{ hashFiles(inputs.dependency-files) }}-${{ github.sha }}
+        restore-keys: |
+          sdk-go-v1-${{ inputs.purpose }}-${{ steps.cache.outputs.identity }}-${{ hashFiles(inputs.dependency-files) }}-
+        # This action stays on pull_request, never pull_request_target. GitHub
+        # scopes writes from PRs to their merge ref, including forks.
