@@ -1,23 +1,54 @@
-### Developer Guidelines
+# Contributing to OtterIO SDK
 
-`minio-go` welcomes your contribution. To make the process as seamless as possible, we ask for the following:
+Submit issues and pull requests to [soulteary/otterio-sdk](https://github.com/soulteary/otterio-sdk). Include the SDK revision, Go version, target server and version, and a small reproduction when reporting a problem. Remove credentials and private data from examples and logs.
 
--	Go ahead and fork the project and make your changes. We encourage pull requests to discuss code changes.
+## Local development
 
-	-	Fork it
-	-	Create your feature branch (git checkout -b my-new-feature)
-	-	Commit your changes (git commit -am 'Add some feature')
-	-	Push to the branch (git push origin my-new-feature)
-	-	Create new Pull Request
+Use Go 1.27.1 or newer, as declared in [go.mod](./go.mod). Fork or clone the repository, create a branch, and make a focused change. The SDK module and its helper imports use `github.com/soulteary/otterio-sdk/v7`; the root Go package is still named `minio`.
 
--	When you're ready to create a pull request, be sure to:
+For code changes, format the edited Go files and add tests that cover the changed behavior. Follow [Go Code Review Comments](https://go.dev/wiki/CodeReviewComments). Keep original copyright and license notices.
 
-	-	Have test cases for the new code. If you have questions about how to do it, please ask in your pull request.
-	-	Run `go fmt`
-	-	Squash your commits into a single commit. `git rebase -i`. It's okay to force update your pull request.
-	-	Make sure `go test -race ./...` and `go build` completes. NOTE: go test runs functional tests and requires you to have a AWS S3 account. Set them as environment variables`ACCESS_KEY` and `SECRET_KEY`. To run shorter version of the tests please use `go test -short -race ./...`
+Run these checks from the repository root:
 
--	Read [Effective Go](https://github.com/golang/go/wiki/CodeReviewComments) article from Golang project
+```sh
+go test -short -race ./...
+go build ./...
+make lint
+make examples
+```
 
-	-	`minio-go` project is strictly conformant with Golang style
-	-	if you happen to observe offending code, please feel free to send a pull request
+`make lint` uses the `golangci-lint` tool pinned in `go.mod` through `go tool golangci-lint`; `make vet` is an alias for the same check. `make examples` builds every example file separately because each has its own `main` function. The example directories have their own `go.mod` files and replace the SDK dependency with the local checkout.
+
+For documentation changes, check relative links and anchors and compile any new runnable Go examples against this checkout. Describe what you verified in the pull request; no new test is needed for a prose-only correction.
+
+## Tests with a live server
+
+`go test -short -race ./...` skips the live-server tests in `core_test.go`. Those tests also skip when `SERVER_ENDPOINT` is unset. Other tests use local fixtures or mock HTTP servers and do not require an AWS account.
+
+To include the live-server tests, configure a **disposable test server** and test credentials, then run:
+
+```sh
+: "${SERVER_ENDPOINT:?Set the test S3 endpoint, for example 127.0.0.1:9000}"
+: "${ACCESS_KEY:?Set the test access key}"
+: "${SECRET_KEY:?Set the test secret key}"
+: "${ENABLE_HTTPS:?Set true for HTTPS or false for HTTP}"
+export SERVER_ENDPOINT ACCESS_KEY SECRET_KEY ENABLE_HTTPS
+go test -race ./...
+```
+
+These tests create and remove buckets and objects. Use the S3 API endpoint rather than a separate web console port. For a private test CA, configure `SSL_CERT_FILE` with the trusted CA certificate.
+
+The larger functional suite is a separate program in [functional_tests.go](./functional_tests.go), excluded from normal package builds by the `mint` build constraint. With the environment above set, compile the file directly and run it:
+
+```sh
+go build -race -o /tmp/otterio-sdk-functional-tests functional_tests.go
+MINT_MODE=full /tmp/otterio-sdk-functional-tests
+```
+
+Do not run that program without `SERVER_ENDPOINT`: it defaults to the upstream public `play.min.io` service when the variable is absent. The suite contains AWS- and MinIO/AIStor-specific cases; a server that implements basic S3 operations may not implement every case. The [Linux](./.github/workflows/go.yml) and [Windows](./.github/workflows/go-windows.yml) workflows show the current CI server and configuration, including encryption and other features needed by the suite.
+
+`make checks` combines lint, package tests, example builds, and functional tests. Its `test` and `functional-test` targets hard-code a TLS server at `localhost:9000` with upstream test credentials, so use the explicit commands above for a different server or credentials.
+
+## Pull requests
+
+Explain the problem, the resulting behavior, and your verification. Link a related issue when one exists. Keep README commands, API examples, and the [Chinese quick start](./README_zh_CN.md) consistent when changing user-facing behavior. Release preparation is described in [MAINTAINERS.md](./MAINTAINERS.md).

@@ -1,43 +1,17 @@
-For maintainers only
-====================
+# OtterIO SDK maintainer notes
 
-Responsibilities
-----------------
+These notes apply to [soulteary/otterio-sdk](https://github.com/soulteary/otterio-sdk). Releases of this fork use its repository and maintainer credentials; the upstream MinIO signing keys, accounts, and release pages are not part of this process.
 
-Please go through this link [Maintainer Responsibility](https://gist.github.com/abperiasamy/f4d9b31d3186bbd26522)
+## Prepare a release
 
-### Making new releases
+1. Review the intended revision and the changes since the previous [tag](https://github.com/soulteary/otterio-sdk/tags). Run the checks described in [CONTRIBUTING.md](./CONTRIBUTING.md), including the live-server cases needed by the changes.
+2. Confirm that `go.mod`, helper imports, example modules, and documentation use the `github.com/soulteary/otterio-sdk/v7` module path. Tags for this major version must use the `v7.<minor>.<patch>` form.
+3. Review `libraryVersion` in [api.go](./api.go). It is part of the inherited client user agent; change it deliberately when preparing a version update, without replacing upstream copyright notices or protocol identifiers.
+4. Create the reviewed tag on the intended commit and push it to this fork using your own authorized account. Sign the tag with your own signing key if you use signed tags.
+5. Publish notes on this repository's [releases page](https://github.com/soulteary/otterio-sdk/releases), describing changes, compatibility implications, and validation. Identify any upstream-derived changes and link their sources.
 
-Tag and sign your release commit, additionally this step requires you to have access to MinIO's trusted private key.
+The checked-in [workflows](./.github/workflows) run pull request checks and vulnerability scanning; there is currently no release publishing workflow. A tag push does not automatically create a GitHub release or binary assets. This repository provides a Go module, so consumers select a release with `go get github.com/soulteary/otterio-sdk/v7@<tag>`.
 
-```sh
-$ export GNUPGHOME=/media/${USER}/minio/trusted
-$ git tag -s 4.0.0
-$ git push
-$ git push --tags
-```
+## Attribution
 
-### Update version
-
-Once release has been made update `libraryVersion` constant in `api.go` to next to be released version.
-
-```sh
-$ grep libraryVersion api.go
-      libraryVersion = "4.0.1"
-```
-
-Commit your changes
-
-```
-$ git commit -a -m "Update version for next release" --author "MinIO Trusted <trusted@min.io>"
-```
-
-### Announce
-
-Announce new release by adding release notes at https://github.com/minio/minio-go/releases from `trusted@min.io` account. Release notes requires two sections `highlights` and `changelog`. Highlights is a bulleted list of salient features in this release and Changelog contains list of all commits since the last release.
-
-To generate `changelog`
-
-```sh
-$ git log --no-color --pretty=format:'-%d %s (%cr) <%an>' <last_release_tag>..<latest_release_tag>
-```
+Use your own name and contact information for commits. Keep [LICENSE](./LICENSE), [NOTICE](./NOTICE), and original source copyright headers intact. Do not attribute fork releases or commits to an upstream MinIO account.
