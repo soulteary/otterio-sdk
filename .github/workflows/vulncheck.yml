@@ -1,9 +1,6 @@
 name: VulnCheck
 on:
   pull_request:
-    branches:
-    - master
-    - main
   push:
     branches:
     - master
@@ -12,9 +9,6 @@ jobs:
   vulncheck:
     name: Analysis
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: [ 1.25.x, 1.26.x ]
     steps:
     - name: Check out code into the Go module directory
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -22,15 +16,10 @@ jobs:
         persist-credentials: false
     - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
       with:
-        go-version: ${{ matrix.go-version }}
-        check-latest: true
-    # setup-go pins GOTOOLCHAIN=local, so `go install` can only use the matrix
-    # leg's toolchain -- and govulncheck's own module moves ahead of it. x/vuln
-    # v1.8.0 declares go 1.26.0, which failed the 1.25.x leg outright ("requires
-    # go >= 1.26.0"). Building the tool with GOTOOLCHAIN=auto lets it fetch what
-    # it needs, while the scan below still runs against the matrix leg. Scoped to
-    # this step so nothing else escapes the pinned toolchain.
+        go-version-file: go.mod
     - name: Get govulncheck
+      # The latest scanner may need a newer Go release. Allow that only while
+      # installing it; the scan below still uses the SDK's pinned Go toolchain.
       run: GOTOOLCHAIN=auto go install golang.org/x/vuln/cmd/govulncheck@latest
       shell: bash
     - name: Run govulncheck
