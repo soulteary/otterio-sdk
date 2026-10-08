@@ -1,60 +1,86 @@
-# MinIO Go Client API Reference [![Slack](https://slack.min.io/slack?type=svg)](https://slack.min.io)
+# OtterIO Go SDK API reference
 
-## Initialize MinIO Client object.
+[English quick start](../README.md) · [中文快速开始](../README_zh_CN.md) · [Go package documentation](https://pkg.go.dev/github.com/soulteary/otterio-sdk/v7)
 
-## MinIO
+This reference describes the client in this repository. The module path is `github.com/soulteary/otterio-sdk/v7`; the Go package name remains `minio`. Use the same module prefix for helper imports such as `pkg/credentials`, `pkg/encrypt`, and `pkg/notification`.
+
+API availability depends on the target server. MinIO/AIStor extension descriptions identify inherited upstream APIs; they do not imply that the OtterIO server implements those extensions. AWS-specific operations require the corresponding AWS service. Check the target server's documentation and test the features your application uses.
+
+Except for examples with a complete `package main`, snippets assume an initialized `minioClient` and the relevant imports and input values. They are not standalone programs. Network calls accept a context; check operation and reader errors and close returned readers.
+
+## Initialize an OtterIO or S3-compatible client
+
+Set the connection variables as described in the [quick start](../README.md#quick-start-upload-and-read-an-object). Pass the S3 API address, not a separate web console address. A `host:port` endpoint is sufficient; `Secure` selects HTTP or HTTPS. An explicit URL scheme must agree with `Secure`, and the endpoint must not contain a bucket or object path.
 
 ```go
 package main
 
 import (
 	"log"
+	"os"
+	"strconv"
 
-	"github.com/soulteary/otterio-sdk/v7"
+	minio "github.com/soulteary/otterio-sdk/v7"
 	"github.com/soulteary/otterio-sdk/v7/pkg/credentials"
 )
 
 func main() {
-	endpoint := "play.min.io"
-	accessKeyID := "Q3AM3UQ867SPQQA43P2F"
-	secretAccessKey := "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
-	useSSL := true
-
-	// Initialize minio client object.
+	endpoint := os.Getenv("S3_ENDPOINT")
+	accessKeyID := os.Getenv("S3_ACCESS_KEY")
+	secretAccessKey := os.Getenv("S3_SECRET_KEY")
+	if endpoint == "" || accessKeyID == "" || secretAccessKey == "" {
+		log.Fatal("Set S3_ENDPOINT, S3_ACCESS_KEY, and S3_SECRET_KEY")
+	}
+	secure := true
+	if value := os.Getenv("S3_USE_TLS"); value != "" {
+		var err error
+		secure, err = strconv.ParseBool(value)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 	minioClient, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
-		Secure: useSSL,
+		Secure: secure,
 	})
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(err)
 	}
-
-	log.Printf("%#v\n", minioClient) // minioClient is now setup
+	log.Printf("Configured S3 endpoint: %s", minioClient.EndpointURL())
 }
 ```
 
-## AWS S3
+Constructing a client does not make a network request. Use an operation such as `ListBuckets` or the quick start's upload/read sequence to verify the connection.
+
+## Initialize an AWS S3 client
+
+Set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` to your credentials. For temporary credentials, also set `AWS_SESSION_TOKEN`. This example configures a client; it does not list buckets or verify account permissions.
 
 ```go
 package main
 
 import (
-	"fmt"
+	"log"
+	"os"
 
-	"github.com/soulteary/otterio-sdk/v7"
+	minio "github.com/soulteary/otterio-sdk/v7"
 	"github.com/soulteary/otterio-sdk/v7/pkg/credentials"
 )
 
 func main() {
-	// Initialize minio client object.
+	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
+	secretAccessKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
+	if accessKeyID == "" || secretAccessKey == "" {
+		log.Fatal("Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY")
+	}
 	s3Client, err := minio.New("s3.amazonaws.com", &minio.Options{
-		Creds:  credentials.NewStaticV4("YOUR-ACCESSKEYID", "YOUR-SECRETACCESSKEY", ""),
+		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, os.Getenv("AWS_SESSION_TOKEN")),
 		Secure: true,
 	})
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal(err)
 	}
+	log.Printf("Configured S3 endpoint: %s", s3Client.EndpointURL())
 }
 ```
 
@@ -88,7 +114,7 @@ func main() {
 |                                                               | [`GetObjectAttributes`](#GetObjectAttributes)       |                                               |                                                               |                                                       |
 |                                                               | [`PromptObject`](#PromptObject)                     |                                               |                                                               |                                                       |
 
-1. Constructor --------------
+## Constructor
 
 <a name="MinIO"></a>
 
@@ -100,8 +126,8 @@ Initializes a new client object.
 
 | Param      | Type            | Description                           |
 | :--------- | :-------------- | :------------------------------------ |
-| `endpoint` | _string_        | S3 compatible object storage endpoint |
-| `opts`     | _minio.Options_ | Options for constructing a new client |
+| `endpoint` | _string_        | S3 API host or host:port; an optional HTTP(S) scheme must match `Secure`; no bucket or object path |
+| `opts`     | _*minio.Options_ | Non-nil options for constructing a new client |
 
 **minio.Options**
 
@@ -116,7 +142,7 @@ Initializes a new client object.
 |                     |                             | _minio.BucketLookupPath_                                                     |
 |                     |                             | _minio.BucketLookupAuto_                                                     |
 
-1. Bucket operations --------------------
+## Bucket operations
 
 <a name="MakeBucket"></a>
 
@@ -465,28 +491,69 @@ if err != nil {
 }
 ```
 
-1. Object operations --------------------
+## Object operations
 
 <a name="AppendObject"></a>
 
 ### AppendObject(ctx context.Context, bucketName, objectName string, reader io.Reader, objectSize int64, opts AppendObjectOptions) (UploadInfo, error)
 
-**Parameters** |Param | Type | Description | |:--- | :--- | :--- | |`ctx` | _context.Context_ | Custom Context for timeout/cancellation of the call| |`bucketName`| _string_ | Name of bucket | |`objectName`| _string_ | Name of Object | |`reader` | _io.Reader_ | standard Reader Interface | |`objectSize` | _int64_ | Size of the object | |`opts` | _minio.AppendObjectOptions_ | Additional Options for Append Operation|
+Appends data to an existing object on a server that supports the append operation. Initialize the client with Signature V4 credentials and `Options.TrailingHeaders: true`; otherwise the operation is rejected locally. GCS endpoints are rejected.
 
-**Return Value** |Param | Type | Description | |:--- | :--- | :--- | |`info`| _minio.UploadInfo_ | Information about the newly uploaded or copied object | |`err`| _error_ | Standard error |
+A server without append support may **overwrite the object** instead of appending. Verify support on your target server using a disposable object before using this operation with existing data.
 
-**minio.AppendObjectOptions** | Field | Type | Description | |:--- | :--- | :--- | |`opts.Progress`| _io.Reader_ | A progress reader to indicate progress| |`opts.ChunkSize`| _uint64_ | Maximum Append Size | |`opts.DisableContentSha256`| _bool_ | Aggressively disable sha256 payload. |
+**Parameters**
 
-**minio.UploadInfo** | Field | Type | Description | | :--- | :--- | :--- | | `info.Bucket` | _string_ | Name of bucket | | `info.Key` | _string_ | Name of object | | `info.ETag` | _string_ | MD5 checksum of the object | | `info.Size` | _string_ | Size of object |
+| Param | Type | Description |
+| :--- | :--- | :--- |
+| `ctx` | _context.Context_ | Context for timeout or cancellation |
+| `bucketName` | _string_ | Name of the bucket |
+| `objectName` | _string_ | Name of the object |
+| `reader` | _io.Reader_ | Data to append |
+| `objectSize` | _int64_ | Size of the data to append |
+| `opts` | _minio.AppendObjectOptions_ | Append options |
+
+**Return values**
+
+| Param | Type | Description |
+| :--- | :--- | :--- |
+| `info` | _minio.UploadInfo_ | Information about the appended object |
+| `err` | _error_ | Operation error |
+
+**minio.AppendObjectOptions**
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `opts.Progress` | _io.Reader_ | Reader used to report append progress |
+| `opts.ChunkSize` | _uint64_ | Maximum size per append request |
+| `opts.DisableContentSha256` | _bool_ | Disable SHA-256 payload hashing |
+
+**minio.UploadInfo**
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `info.Bucket` | _string_ | Name of the bucket |
+| `info.Key` | _string_ | Name of the object |
+| `info.ETag` | _string_ | Server-provided entity tag |
+| `info.Size` | _int64_ | Final object size after the append |
 
 **Example**
 
 ```go
-opt := minio.AppendObjectOptions{}
-info, err := minio.AppendObject(context.Background(), "my-bucket-name", "my-object-name", my_progress_reader, size, opt)
+appendClient, err := minio.New(endpoint, &minio.Options{
+	Creds:           credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+	Secure:          secure,
+	TrailingHeaders: true,
+})
 if err != nil {
 	log.Fatalln(err)
 }
+data := []byte("appended data\n")
+info, err := appendClient.AppendObject(context.Background(), "my-bucket-name", "my-object-name",
+	bytes.NewReader(data), int64(len(data)), minio.AppendObjectOptions{})
+if err != nil {
+	log.Fatalln(err)
+}
+fmt.Printf("Object %s is now %d bytes\n", info.Key, info.Size)
 ```
 
 <a name="GetObject"></a>
@@ -568,9 +635,11 @@ if err != nil {
 
 <a name="PutObjectFanOut"></a>
 
-### PutObjectFanOut(ctx context.Context, bucket string, body io.Reader, fanOutReq ...PutObjectFanOutRequest) ([]PutObjectFanOutResponse, error)
+### PutObjectFanOut(ctx context.Context, bucket string, fanOutData io.Reader, fanOutReq PutObjectFanOutRequest) ([]PutObjectFanOutResponse, error)
 
-A variant of PutObject instead of writing a single object from a single stream multiple objects are written, defined via a list of _PutObjectFanOutRequest_. Each entry in _PutObjectFanOutRequest_ carries an object keyname and its relevant metadata if any. `Key` is mandatory, rest of the other options in \*PutObjectFanOutRequest( are optional.
+Writes multiple objects from one input stream using the entries in a single _PutObjectFanOutRequest_. Each entry carries a mandatory `Key` and optional metadata. This is an inherited server extension.
+
+**Deprecated:** use `PutObject` instead, as documented in the source.
 
 **Parameters**
 
@@ -586,9 +655,9 @@ A variant of PutObject instead of writing a single object from a single stream m
 
 | Field       | Type                            | Description                                |
 | :---------- | :------------------------------ | :----------------------------------------- |
-| `Entries`   | _[]minio.PutObjectFanOutEntyry_ | List of object fan out entries             |
-| `Checksums` | _map[string]string_             | Checksums for the input data               |
-| `SSE`       | \_encrypt.ServerSide            | Encryption settings for the entire fan-out |
+| `Entries`   | _[]minio.PutObjectFanOutEntry_ | List of object fan out entries             |
+| `Checksum` | _minio.Checksum_                 | Checksum for the input data                |
+| `SSE`       | _encrypt.ServerSide_            | Encryption settings for the entire fan-out |
 
 **minio.PutObjectFanOutEntry**
 
@@ -603,7 +672,7 @@ A variant of PutObject instead of writing a single object from a single stream m
 | `ContentLanguage`    | _string_              | Content language of object, e.g "French"                                                           |
 | `CacheControl`       | _string_              | Used to specify directives for caching mechanisms in both requests and responses e.g "max-age=600" |
 | `Retention`          | _minio.RetentionMode_ | Retention mode to be set, e.g "COMPLIANCE"                                                         |
-| `RetainUntilDate`    | _time.Time_           | Time until which the retention applied is valid                                                    |
+| `RetainUntilDate`    | _*time.Time_           | Time until which the retention applied is valid                                                    |
 
 **minio.PutObjectFanOutResponse**
 
@@ -612,8 +681,8 @@ A variant of PutObject instead of writing a single object from a single stream m
 | `Key`          | _string_    | Name of the object                                              |
 | `ETag`         | _string_    | ETag opaque unique value of the object                          |
 | `VersionID`    | _string_    | VersionID of the uploaded object                                |
-| `LastModified` | \_time.Time | Last modified time of the latest object                         |
-| `Error`        | _error_     | Is non `nil` only when the fan-out for a specific object failed |
+| `LastModified` | _*time.Time_ | Last modified time of the latest object                         |
+| `Error`        | _string_    | Non-empty when the fan-out for a specific object failed |
 
 <a name="PutObject"></a>
 
@@ -1184,7 +1253,7 @@ if err != nil {
 
 <a name="GetObjectLegalHold"></a>
 
-### GetObjectLegalHold(ctx context.Context, bucketName, objectName, versionID string) (status \*LegalHoldStatus, err error)
+### GetObjectLegalHold(ctx context.Context, bucketName, objectName string, opts GetObjectLegalHoldOptions) (status \*LegalHoldStatus, err error)
 
 Returns legal-hold status on a given object.
 
@@ -1199,68 +1268,63 @@ Returns legal-hold status on a given object.
 
 ```go
 opts := minio.GetObjectLegalHoldOptions{}
-err = minioClient.GetObjectLegalHold(context.Background(), "mybucket", "myobject", opts)
+status, err := minioClient.GetObjectLegalHold(context.Background(), "mybucket", "myobject", opts)
 if err != nil {
 	fmt.Println(err)
 	return
 }
+fmt.Printf("Legal hold: %s\n", *status)
 ```
 
 <a name="SelectObjectContent"></a>
 
-### SelectObjectContent(ctx context.Context, bucketName string, objectsName string, expression string, options SelectObjectOptions) \*SelectResults
+### SelectObjectContent(ctx context.Context, bucketName, objectName string, opts SelectObjectOptions) (\*SelectResults, error)
 
 Parameters
 
 | Param        | Type                  | Description                                         |
 | :----------- | :-------------------- | :-------------------------------------------------- |
 | `ctx`        | _context.Context_     | Custom context for timeout/cancellation of the call |
-| `ctx`        | _context.Context_     | Request context                                     |
 | `bucketName` | _string_              | Name of the bucket                                  |
 | `objectName` | _string_              | Name of the object                                  |
-| `options`    | _SelectObjectOptions_ | Query Options                                       |
+| `opts`       | _SelectObjectOptions_ | Query options                                       |
 
 **Return Values**
 
 | Param           | Type            | Description                                                                                     |
 | :-------------- | :-------------- | :---------------------------------------------------------------------------------------------- |
-| `SelectResults` | _SelectResults_ | Is an io.ReadCloser object which can be directly passed to csv.NewReader for processing output. |
+| `reader` | _*minio.SelectResults_ | Reader for query output; close it when finished |
+| `err` | _error_ | Operation error |
 
 ```go
-	// Initialize minio client object.
-	minioClient, err := minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
-		Secure: useSSL,
-	})
-
-	opts := minio.SelectObjectOptions{
-		Expression:     "select count(*) from s3object",
-		ExpressionType: minio.QueryExpressionTypeSQL,
-		InputSerialization: minio.SelectObjectInputSerialization{
-			CompressionType: minio.SelectCompressionNONE,
-			CSV: &minio.CSVInputOptions{
-				FileHeaderInfo:  minio.CSVFileHeaderInfoNone,
-				RecordDelimiter: "\n",
-				FieldDelimiter:  ",",
-			},
+opts := minio.SelectObjectOptions{
+	Expression:     "select count(*) from s3object",
+	ExpressionType: minio.QueryExpressionTypeSQL,
+	InputSerialization: minio.SelectObjectInputSerialization{
+		CompressionType: minio.SelectCompressionNONE,
+		CSV: &minio.CSVInputOptions{
+			FileHeaderInfo:  minio.CSVFileHeaderInfoNone,
+			RecordDelimiter: "\n",
+			FieldDelimiter:  ",",
 		},
-		OutputSerialization: minio.SelectObjectOutputSerialization{
-			CSV: &minio.CSVOutputOptions{
-				RecordDelimiter: "\n",
-				FieldDelimiter:  ",",
-			},
+	},
+	OutputSerialization: minio.SelectObjectOutputSerialization{
+		CSV: &minio.CSVOutputOptions{
+			RecordDelimiter: "\n",
+			FieldDelimiter:  ",",
 		},
-	}
+	},
+}
 
-	reader, err := s3Client.SelectObjectContent(context.Background(), "mycsvbucket", "mycsv.csv", opts)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer reader.Close()
+reader, err := minioClient.SelectObjectContent(context.Background(), "mycsvbucket", "mycsv.csv", opts)
+if err != nil {
+	log.Fatalln(err)
+}
+defer reader.Close()
 
-	if _, err := io.Copy(os.Stdout, reader); err != nil {
-		log.Fatalln(err)
-	}
+if _, err := io.Copy(os.Stdout, reader); err != nil {
+	log.Fatalln(err)
+}
 ```
 
 <a name="PutObjectTagging"></a>
@@ -1277,11 +1341,12 @@ set new object Tags to the given object, replaces/overwrites any existing tags.
 | `bucketName` | _string_          | Name of the bucket                                  |
 | `objectName` | _string_          | Name of the object                                  |
 | `objectTags` | \*_tags.Tags_     | Map with Object Tag's Key and Value                 |
+| `opts` | _minio.PutObjectTaggingOptions_ | Options including the object version ID |
 
 **Example**
 
 ```go
-err = minioClient.PutObjectTagging(context.Background(), bucketName, objectName, objectTags)
+err = minioClient.PutObjectTagging(context.Background(), bucketName, objectName, objectTags, minio.PutObjectTaggingOptions{})
 if err != nil {
 	fmt.Println(err)
 	return
@@ -1290,7 +1355,7 @@ if err != nil {
 
 <a name="GetObjectTagging"></a>
 
-### GetObjectTagging(ctx context.Context, bucketName, objectName string) (\*tags.Tags, error)
+### GetObjectTagging(ctx context.Context, bucketName, objectName string, opts GetObjectTaggingOptions) (\*tags.Tags, error)
 
 Fetch Object Tags from the given object
 
@@ -1301,21 +1366,22 @@ Fetch Object Tags from the given object
 | `ctx`        | _context.Context_ | Custom context for timeout/cancellation of the call |
 | `bucketName` | _string_          | Name of the bucket                                  |
 | `objectName` | _string_          | Name of the object                                  |
+| `opts` | _minio.GetObjectTaggingOptions_ | Options including the object version ID |
 
 **Example**
 
 ```go
-tags, err = minioClient.GetObjectTagging(context.Background(), bucketName, objectName)
+objectTags, err := minioClient.GetObjectTagging(context.Background(), bucketName, objectName, minio.GetObjectTaggingOptions{})
 if err != nil {
 	fmt.Println(err)
 	return
 }
-fmt.Printf("Fetched Tags: %s", tags)
+fmt.Printf("Fetched Tags: %s", objectTags)
 ```
 
 <a name="RemoveObjectTagging"></a>
 
-### RemoveObjectTagging(ctx context.Context, bucketName, objectName string) error
+### RemoveObjectTagging(ctx context.Context, bucketName, objectName string, opts RemoveObjectTaggingOptions) error
 
 Remove Object Tags from the given object
 
@@ -1326,11 +1392,12 @@ Remove Object Tags from the given object
 | `ctx`        | _context.Context_ | Custom context for timeout/cancellation of the call |
 | `bucketName` | _string_          | Name of the bucket                                  |
 | `objectName` | _string_          | Name of the object                                  |
+| `opts` | _minio.RemoveObjectTaggingOptions_ | Options including the object version ID |
 
 **Example**
 
 ```go
-err = minioClient.RemoveObjectTagging(context.Background(), bucketName, objectName)
+err = minioClient.RemoveObjectTagging(context.Background(), bucketName, objectName, minio.RemoveObjectTaggingOptions{})
 if err != nil {
 	fmt.Println(err)
 	return
@@ -1339,7 +1406,7 @@ if err != nil {
 
 <a name="PutObjectAnnotation"></a>
 
-### PutObjectAnnotation(ctx context.Context, bucketName, objectName, annotationName string, payload io.Reader, opts PutObjectAnnotationOptions) (string, error)
+### PutObjectAnnotation(ctx context.Context, bucketName, objectName, annotationName string, payload io.ReadSeeker, opts PutObjectAnnotationOptions) (string, error)
 
 Create or overwrite a named annotation on an object version. An annotation is a named payload (1 byte to 1 MiB of UTF-8 text) attached to a specific object version, independent of the object's data. Up to 1,000 annotations may be attached per object version. The parent object's ETag is not modified. Returns the annotation's ETag.
 
@@ -1351,7 +1418,7 @@ Create or overwrite a named annotation on an object version. An annotation is a 
 | `bucketName`     | _string_                     | Name of the bucket                                                   |
 | `objectName`     | _string_                     | Name of the object                                                   |
 | `annotationName` | _string_                     | Name of the annotation (1-512 bytes)                                 |
-| `payload`        | _io.Reader_                  | Annotation payload (1 byte to 1 MiB of valid UTF-8)                  |
+| `payload`        | _io.ReadSeeker_                  | Annotation payload (1 byte to 1 MiB of valid UTF-8)                  |
 | `opts`           | _PutObjectAnnotationOptions_ | Options: `VersionID`, `IfMatch` (x-amz-object-if-match precondition) |
 
 **Example**
@@ -1363,6 +1430,7 @@ if err != nil {
 	fmt.Println(err)
 	return
 }
+fmt.Printf("Annotation ETag: %s\n", etag)
 ```
 
 <a name="GetObjectAnnotation"></a>
@@ -1554,7 +1622,7 @@ if err != nil {
 }
 ```
 
-1. Presigned operations -----------------------
+## Presigned operations
 
 <a name="PresignedGetObject"></a>
 
@@ -1652,7 +1720,7 @@ fmt.Println("Successfully generated presigned URL", presignedURL)
 
 <a name="PresignedPostPolicy"></a>
 
-### PresignedPostPolicy(ctx context.Context, post PostPolicy) (\*url.URL, map[string]string, error)
+### PresignedPostPolicy(ctx context.Context, post \*PostPolicy) (\*url.URL, map[string]string, error)
 
 Allows setting policy conditions to a presigned URL for POST operations. Policies such as bucket name to receive object uploads, key name prefixes, expiry policy may be set.
 
@@ -1690,7 +1758,7 @@ fmt.Printf("-F file=@/etc/bash.bashrc ")
 fmt.Printf("%s\n", url)
 ```
 
-1. Bucket policy/notification operations ----------------------------------------
+## Bucket policy/notification operations
 
 <a name="SetBucketPolicy"></a>
 
@@ -1726,7 +1794,7 @@ if err != nil {
 
 <a name="GetBucketPolicy"></a>
 
-### GetBucketPolicy(ctx context.Context, bucketName string) (policy string, error)
+### GetBucketPolicy(ctx context.Context, bucketName string) (string, error)
 
 Get access permissions on a bucket or a prefix.
 
@@ -2636,7 +2704,7 @@ if err != nil {
 fmt.Printf("Resync status: %+v\n", resyncInfo)
 ```
 
-1. Client custom settings -------------------------
+## Client custom settings
 
 <a name="SetAppInfo"></a>
 
@@ -2730,7 +2798,7 @@ if err != nil {
 fmt.Printf("Access Key: %s\n", creds.AccessKeyID)
 ```
 
-1. Additional Operations ------------------------
+## Additional Operations
 
 <a name="SetBucketCors"></a>
 
@@ -3059,7 +3127,7 @@ if result.NextContinuationToken != "" {
 
 ### ListBucketInventoryConfigurationsIterator(ctx context.Context, bucket string) iter.Seq2[InventoryConfiguration, error]
 
-Return an iterator that lists all inventory configurations for a bucket. This is a MinIO-specific API. Requires Go 1.23+.
+Return an iterator that lists all inventory configurations for a bucket. This is a MinIO-specific API. Uses Go range-over-function iteration; follow the toolchain requirement in [go.mod](../go.mod).
 
 **Parameters**
 
@@ -3236,36 +3304,6 @@ if err != nil {
 fmt.Printf("Bucket location: %s\n", location)
 ```
 
-<a name="GetBucketReplicationMetrics"></a>
-
-### GetBucketReplicationMetrics(ctx context.Context, bucketName string) (replication.Metrics, error)
-
-Get replication metrics for a bucket. This is a MinIO specific extension.
-
-**Parameters**
-
-| Param        | Type              | Description                                         |
-| ------------ | ----------------- | --------------------------------------------------- |
-| `ctx`        | _context.Context_ | Custom context for timeout/cancellation of the call |
-| `bucketName` | _string_          | Name of the bucket                                  |
-
-**Return Values**
-
-| Param     | Type                  | Description         |
-| --------- | --------------------- | ------------------- |
-| `metrics` | _replication.Metrics_ | Replication metrics |
-| `err`     | _error_               | Standard Error      |
-
-**Example**
-
-```go
-metrics, err := minioClient.GetBucketReplicationMetrics(context.Background(), "mybucket")
-if err != nil {
-	log.Fatalln(err)
-}
-fmt.Printf("Replication metrics: %+v\n", metrics)
-```
-
 <a name="TraceErrorsOnlyOn"></a>
 
 ### TraceErrorsOnlyOn(outputStream io.Writer)
@@ -3300,7 +3338,7 @@ Enable or disable S3 dual-stack endpoints which support both IPv4 and IPv6.
 
 ### IsOnline() bool
 
-Check if the MinIO client is online and can reach the server.
+Returns the client's health-check state without making a new network request. If `HealthCheck` has not been started, `IsOnline` always returns `true`; that value alone does not verify a connection.
 
 **Return Value**
 
@@ -3312,7 +3350,7 @@ Check if the MinIO client is online and can reach the server.
 
 ### IsOffline() bool
 
-Check if the MinIO client is offline and cannot reach the server.
+Returns whether the health-check state is offline without making a new network request. If `HealthCheck` has not been started, `IsOffline` always returns `false`.
 
 **Return Value**
 
@@ -3324,7 +3362,7 @@ Check if the MinIO client is offline and cannot reach the server.
 
 ### HealthCheck(hcDuration time.Duration) (context.CancelFunc, error)
 
-Start continuous health check monitoring of the MinIO server.
+Start background endpoint health monitoring. The interval must be at least one second. Call the returned cancellation function to stop monitoring. Starting a second health check while one is running returns an error.
 
 **Parameters**
 
