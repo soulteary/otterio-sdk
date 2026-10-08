@@ -30,7 +30,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/minio/minio-go/v7/pkg/s3utils"
+	"github.com/soulteary/otterio-sdk/v7/pkg/s3utils"
 )
 
 // putObjectMultipartStream - upload a large object using

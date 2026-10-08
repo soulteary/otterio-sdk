@@ -25,9 +25,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/cors"
-	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/soulteary/otterio-sdk/v7"
+	"github.com/soulteary/otterio-sdk/v7/pkg/cors"
+	"github.com/soulteary/otterio-sdk/v7/pkg/credentials"
 )
 
 func main() {
