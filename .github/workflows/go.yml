@@ -5,13 +5,51 @@ on:
 
 # This ensures that previous jobs for the PR are canceled when the PR is
 # updated.
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref }}
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Test on Go ${{ matrix.go-version }} and ${{ matrix.os }}
+  # Lint and example compilation do not use the running S3 server.
+  checks:
+    name: Lint and examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-go-ci
+        id: go
+        with:
+          purpose: checks
+          dependency-files: |
+            go.mod
+            go.sum
+            examples/s3/go.mod
+            examples/s3/go.sum
+            examples/minio/go.mod
+            examples/minio/go.sum
+      - name: Cache pinned linter binary
+        id: linter
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/sdk-lint-bin
+          key: sdk-linter-v1-${{ steps.go.outputs.identity }}-${{ hashFiles('go.mod', 'go.sum') }}
+      - name: Build the linter pinned in go.mod
+        if: steps.linter.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$RUNNER_TEMP/sdk-lint-bin"
+          go build -o "$RUNNER_TEMP/sdk-lint-bin/golangci-lint" github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+      - name: Lint
+        run: make lint GOLANGCI_LINT="$RUNNER_TEMP/sdk-lint-bin/golangci-lint"
+      - name: Build all examples
+        run: make examples
+
+  integration:
+    name: Race and functional tests on Go ${{ matrix.go-version }} and ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -23,11 +61,9 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Go ${{ matrix.go-version }} on ${{ matrix.os }}
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: ./.github/actions/setup-go-ci
         with:
-          go-version: ${{ matrix.go-version }}
-        id: go
+          purpose: integration
 
       - name: Build on ${{ matrix.os }}
         env:
@@ -41,8 +77,6 @@ jobs:
           MINIO_CI_CD: true
           MINT_NO_FULL_OBJECT: true
         run: |
-          sudo apt update -y
-          sudo apt install devscripts -y
           mkdir -p /tmp/certs-dir
           cp testcerts/* /tmp/certs-dir
           # Test against the AIStor :edge-daily image so the latest AIStor APIs
@@ -77,4 +111,19 @@ jobs:
             echo "AIStor server did not become ready within 60 seconds" >&2
             exit 1
           fi
-          make
+          make test functional-test
+
+  # Preserve the existing required-check name and require both parallel jobs.
+  build:
+    name: Test on Go 1.27.1 and ubuntu-latest
+    if: always()
+    needs: [checks, integration]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require lint, examples, race and functional tests
+        env:
+          CHECKS_RESULT: ${{ needs.checks.result }}
+          INTEGRATION_RESULT: ${{ needs.integration.result }}
+        run: |
+          test "$CHECKS_RESULT" = success
+          test "$INTEGRATION_RESULT" = success
