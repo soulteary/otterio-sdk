@@ -1,11 +1,11 @@
-module github.com/minio/minio-go/examples/s3
+module github.com/soulteary/otterio-sdk/examples/s3
 
 go 1.27.1
 
 require (
 	github.com/cheggaaa/pb v1.0.29
-	// Overridden by `replace` below, to point all versions at the local minio-go source, so version shouldn't matter here.
-	github.com/minio/minio-go/v7 v7.0.73
+	// Overridden by `replace` below, to point all versions at the local otterio-sdk source, so version shouldn't matter here.
+	github.com/soulteary/otterio-sdk/v7 v7.0.73
 	github.com/soulteary/otterio-kits/sio v0.5.2
 	golang.org/x/crypto v0.57.0
 )
@@ -32,4 +32,4 @@ require (
 	gopkg.in/ini.v1 v1.67.3 // indirect
 )
 
-replace github.com/minio/minio-go/v7 => ../..
+replace github.com/soulteary/otterio-sdk/v7 => ../..

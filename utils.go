@@ -41,9 +41,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/minio/minio-go/v7/pkg/s3utils"
-	"github.com/minio/minio-go/v7/pkg/tags"
 	md5simd "github.com/soulteary/otterio-kits/md5-simd"
+	"github.com/soulteary/otterio-sdk/v7/pkg/s3utils"
+	"github.com/soulteary/otterio-sdk/v7/pkg/tags"
 )
 
 func trimEtag(etag string) string {

@@ -26,7 +26,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/soulteary/otterio-sdk/v7/pkg/credentials"
 )
 
 func TestUpdateObjectEncryptionXMLMarshal(t *testing.T) {
