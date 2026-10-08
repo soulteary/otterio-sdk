@@ -1,4 +1,4 @@
-module github.com/minio/minio-go/v7
+module github.com/soulteary/otterio-sdk/v7
 
 go 1.27.1
 
