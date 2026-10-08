@@ -387,7 +387,6 @@ github.com/kkHAIKE/contextcheck v1.1.6 h1:7HIyRcnyzxL9Lz06NGhiKvenXq7Zw6Q0UQu/tt
 github.com/kkHAIKE/contextcheck v1.1.6/go.mod h1:3dDbMRNBFaq8HFXWC1JyvDSPm43CmE6IuHam8Wr0rkg=
 github.com/klauspost/compress v1.19.2 h1:hMRETovs/pu/dVWN7zIT1PGG8t509MwT6bO7XSi26R8=
 github.com/klauspost/compress v1.19.2/go.mod h1:cwPg85FWrGar70rWktvGQj8/hthj3wpl0PGDogxkrSQ=
-github.com/klauspost/cpuid/v2 v2.0.1/go.mod h1:FInQzS24/EEf25PyTYn52gqo7WaD8xa0213Md/qVLRg=
 github.com/klauspost/cpuid/v2 v2.4.0 h1:S6Hrbc7+ywsr0r+RLapfGBHfyefhCTwEh3A0tV913Dw=
 github.com/klauspost/cpuid/v2 v2.4.0/go.mod h1:19jmZ9mjzoF//ddRSUsv0zfBTJWh3QJh9FNxZTMrGxU=
 github.com/klauspost/crc32 v1.3.0 h1:sSmTt3gUt81RP655XGZPElI0PelVTZ6YwCRnPSupoFM=
@@ -448,10 +447,6 @@ github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0j
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/mgechev/revive v1.17.0 h1:hwTTVC3svSv9X2FA2hiYT17Uws+lfxDWhPxzBZZCREg=
 github.com/mgechev/revive v1.17.0/go.mod h1:uiVNUF8ruVh4WHm/aPs7kKEeuo+m6oO3tuOfniyzP/g=
-github.com/minio/crc64nvme v1.1.1 h1:8dwx/Pz49suywbO+auHCBpCtlW1OfpcLN7wYgVR6wAI=
-github.com/minio/crc64nvme v1.1.1/go.mod h1:eVfm2fAzLlxMdUGc0EEBGSMmPwmXD5XiNRpnu9J3bvg=
-github.com/minio/md5-simd v1.1.2 h1:Gdi1DZK69+ZVMoNHRXJyNcxrMA4dSxoYHZSQbirFg34=
-github.com/minio/md5-simd v1.1.2/go.mod h1:MzdKDxYpY2BT9XQFocsiZf/NKVtR7nkE4RoEpN+20RM=
 github.com/mitchellh/go-homedir v1.1.0 h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG+4E0Y=
 github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
@@ -565,6 +560,10 @@ github.com/sivchari/containedctx v1.0.3 h1:x+etemjbsh2fB5ewm5FeLNi5bUjK0V8n0RB+W
 github.com/sivchari/containedctx v1.0.3/go.mod h1:c1RDvCbnJLtH4lLcYD/GqwiBSSf4F5Qk0xld2rBqzJ4=
 github.com/sonatard/noctx v0.5.1 h1:wklWg9c9ZYugOAk7qG4yP4PBrlQsmSLPTvW1K4PRQMs=
 github.com/sonatard/noctx v0.5.1/go.mod h1:64XdbzFb18XL4LporKXp8poqZtPKbCrqQ402CV+kJas=
+github.com/soulteary/otterio-kits/crc64nvme v1.1.2 h1:PJnTq7jdleWnSL53Q0JbVL6zqwb/DQXRgAp2BuMkK3w=
+github.com/soulteary/otterio-kits/crc64nvme v1.1.2/go.mod h1:15LQhqz+zc2stVo5ASLu+hJtIMeC1H4z2wcyVVSGYpw=
+github.com/soulteary/otterio-kits/md5-simd v1.1.3 h1:c3FJYcEqy0v0TLsnOA9bHZ/F8KBocp6IC+gquzAu0lE=
+github.com/soulteary/otterio-kits/md5-simd v1.1.3/go.mod h1:a2YrereIx/6IXFGITfk4DErxeqPkpGlWNpmOUA90w1A=
 github.com/sourcegraph/go-diff v0.9.0 h1:7xcVsayWHhvxZGrqt1o89vvBApCa4nyCgO7tNxDHJ+Q=
 github.com/sourcegraph/go-diff v0.9.0/go.mod h1:hWlcO7Al+UZStZAP8rBumHpCK5ZHQ5BXsMls8p4+F5E=
 github.com/spf13/afero v1.15.0 h1:b/YBCLWAJdFWJTN9cLhiXXcD7mzKn9Dm86dNnfyQw1I=

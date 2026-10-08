@@ -26,7 +26,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/minio/sio"
+	"github.com/soulteary/otterio-kits/sio"
 	"github.com/soulteary/otterio-sdk/v7"
 	"github.com/soulteary/otterio-sdk/v7/pkg/credentials"
 	"golang.org/x/crypto/argon2"

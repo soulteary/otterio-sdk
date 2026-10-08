@@ -4,7 +4,7 @@ go 1.27.1
 
 require (
 	github.com/cheggaaa/pb v1.0.29
-	github.com/minio/sio v0.3.0
+	github.com/soulteary/otterio-kits/sio v0.5.2
 	// Overridden by `replace` below, to point all versions at the local otterio-sdk source, so version shouldn't matter here.
 	github.com/soulteary/otterio-sdk/v7 v7.0.73
 	golang.org/x/crypto v0.57.0
@@ -19,10 +19,10 @@ require (
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/klauspost/crc32 v1.3.0 // indirect
 	github.com/mattn/go-runewidth v0.0.24 // indirect
-	github.com/minio/crc64nvme v1.1.1 // indirect
-	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/rs/xid v1.6.0 // indirect
+	github.com/soulteary/otterio-kits/crc64nvme v1.1.2 // indirect
+	github.com/soulteary/otterio-kits/md5-simd v1.1.3 // indirect
 	github.com/tinylib/msgp v1.6.4 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect

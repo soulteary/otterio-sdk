@@ -41,7 +41,7 @@ import (
 	"sync"
 	"time"
 
-	md5simd "github.com/minio/md5-simd"
+	md5simd "github.com/soulteary/otterio-kits/md5-simd"
 	"github.com/soulteary/otterio-sdk/v7/pkg/s3utils"
 	"github.com/soulteary/otterio-sdk/v7/pkg/tags"
 )
