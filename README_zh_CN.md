@@ -1,15 +1,35 @@
+<div align="center">
+
+[![OtterIO Go SDK — S3 兼容对象存储的 Go 客户端](./.github/otterio-sdk-banner.png)](https://github.com/soulteary/otterio-sdk)
+
 # OtterIO Go SDK
 
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
-[![Go](https://img.shields.io/badge/Go-1.27.2%2B-00ADD8.svg?logo=go)](./go.mod)
+**S3 兼容对象存储的 Go 客户端**
+
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
+[![Go](https://img.shields.io/badge/Go-1.27.2%2B-00ADD8.svg?logo=go&logoColor=white)](./go.mod)
+[![GitHub](https://img.shields.io/badge/GitHub-soulteary%2Fotterio--sdk-181717.svg?logo=github)](https://github.com/soulteary/otterio-sdk)
 
 [English](./README.md) · 简体中文
 
-OtterIO SDK 是访问 Amazon S3 兼容对象存储的 Go 客户端，可用于连接 [OtterIO](https://github.com/soulteary/otterio)。项目基于 [MinIO Go SDK](https://github.com/minio/minio-go) 分叉。本仓库提供客户端库；[OtterIO 服务端](https://github.com/soulteary/otterio)和 [`oc` 命令行客户端](https://github.com/soulteary/oc)由独立仓库维护。
+</div>
 
-模块路径是 `github.com/soulteary/otterio-sdk/v7`，Go 包名仍为 `minio`，下方示例通过显式别名导入。迁移现有应用时，需要同时更新根模块和 `pkg/credentials`、`pkg/encrypt` 等辅助包的导入路径。
+OtterIO SDK 是访问 Amazon S3 兼容对象存储的 Go 客户端，可将 [OtterIO](https://github.com/soulteary/otterio) 或其他 S3 兼容服务接入 Go 应用，完成存储桶管理、对象上传、下载与预签名访问。
 
-本项目独立维护，与 MinIO, Inc. 无关联，也未获得其认可或赞助。原始版权声明保留在 [NOTICE](./NOTICE) 和源文件中。
+本文档介绍[安装](#安装)与[上传并读回对象](#快速开始上传并读回对象)的完整流程；[API 参考](./docs/API.md)与[示例](#示例与开发)提供更多操作的使用方式。[OtterIO](https://github.com/soulteary/otterio) 提供存储服务，[OC](https://github.com/soulteary/oc) 提供命令行操作与管理工具，本仓库提供 Go 客户端库。
+
+> [!IMPORTANT]
+> OtterIO SDK 是独立维护的 [MinIO Go SDK](https://github.com/minio/minio-go) 分支，与 MinIO, Inc. 无关联，也未获得其认可或赞助。上游来源与许可说明见[上游来源与许可证](#上游来源与许可证)，原始版权声明保留在 [NOTICE](./NOTICE) 和源文件中。
+
+---
+
+## 关于 OtterIO SDK
+
+SDK 提供存储桶与对象操作、预签名 URL，以及凭据、加密、事件通知、生命周期和标签等辅助包。具体操作能否使用，取决于目标服务的能力与配置，详见 [API 与兼容性](#api-与兼容性)。
+
+模块路径为 `github.com/soulteary/otterio-sdk/v7`，Go 包名仍为 `minio`，示例通过显式别名导入。迁移现有应用时，需要同时更新根模块和 `pkg/credentials`、`pkg/encrypt` 等辅助包的导入路径。
+
+---
 
 ## 安装
 
@@ -23,6 +43,8 @@ go get github.com/soulteary/otterio-sdk/v7
 ```
 
 已有模块只需执行 `go get`。需要固定版本时，可在模块路径后加上发布标签，例如 `@v7.3.1`；可用版本见仓库的[标签列表](https://github.com/soulteary/otterio-sdk/tags)。
+
+---
 
 ## 快速开始：上传并读回对象
 
@@ -126,6 +148,8 @@ go run .
 
 程序会记录上传对象的大小，并在读回对象后输出 `Hello from OtterIO SDK!`。`GetObject` 返回延迟读取的对象：错误可能出现在读取阶段，因此要检查 `io.Copy` 等读取操作的错误，并在使用结束后关闭对象。示例会将存储桶和上传的对象保留在测试服务中。
 
+---
+
 ## API 与兼容性
 
 - [API 参考](./docs/API.md)：本仓库维护的构造函数、选项、操作及示例片段，使用英文。
@@ -134,6 +158,8 @@ go run .
 - [加密](./pkg/encrypt)、[事件通知](./pkg/notification)、[生命周期](./pkg/lifecycle)和[标签](./pkg/tags)辅助包。
 
 S3 操作能否使用，取决于目标服务的能力和配置。API 参考中标为 MinIO/AIStor 扩展的方法来自上游客户端，并不代表 OtterIO 服务端实现了这些功能。请结合 [OtterIO 服务端文档](https://github.com/soulteary/otterio/blob/main/README_zh_CN.md#了解更多)，在目标服务上验证应用实际使用的操作。AWS 特有操作也需要对应的 AWS 服务。
+
+---
 
 ## 示例与开发
 
@@ -154,6 +180,8 @@ go build ./...
 ```
 
 贡献流程、实时服务测试和其他检查见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
+
+---
 
 ## 上游来源与许可证
 

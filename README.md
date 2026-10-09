@@ -1,15 +1,35 @@
+<div align="center">
+
+[![OtterIO Go SDK — Go Client for S3-Compatible Object Storage](./.github/otterio-sdk-banner.png)](https://github.com/soulteary/otterio-sdk)
+
 # OtterIO Go SDK
 
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
-[![Go](https://img.shields.io/badge/Go-1.27.2%2B-00ADD8.svg?logo=go)](./go.mod)
+**Go Client for S3-Compatible Object Storage**
+
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
+[![Go](https://img.shields.io/badge/Go-1.27.2%2B-00ADD8.svg?logo=go&logoColor=white)](./go.mod)
+[![GitHub](https://img.shields.io/badge/GitHub-soulteary%2Fotterio--sdk-181717.svg?logo=github)](https://github.com/soulteary/otterio-sdk)
 
 English · [简体中文](./README_zh_CN.md)
 
-OtterIO SDK is a Go client for Amazon S3 compatible object storage, including [OtterIO](https://github.com/soulteary/otterio). It is a fork of [MinIO Go SDK](https://github.com/minio/minio-go). This repository contains the client library; the [OtterIO server](https://github.com/soulteary/otterio) and [`oc` command-line client](https://github.com/soulteary/oc) are separate projects.
+</div>
+
+OtterIO SDK is a Go client for Amazon S3 compatible object storage. Connect Go applications to [OtterIO](https://github.com/soulteary/otterio) or other S3-compatible services to manage buckets, upload and download objects, and generate presigned URLs.
+
+This README covers [installation](#install) and a complete [upload and read-back example](#quick-start-upload-and-read-an-object). The [API reference](./docs/API.md) and [examples](#examples) cover more operations. [OtterIO](https://github.com/soulteary/otterio) provides the storage server, [OC](https://github.com/soulteary/oc) provides command-line operations and administration, and this repository provides the Go client library.
+
+> [!IMPORTANT]
+> OtterIO SDK is an independently maintained fork of [MinIO Go SDK](https://github.com/minio/minio-go). It is **not** affiliated with, endorsed by, or sponsored by MinIO, Inc. See [Upstream and license](#upstream-and-license) for attribution and licensing; original copyright notices are retained in [NOTICE](./NOTICE) and the source files.
+
+---
+
+## What is OtterIO SDK
+
+The SDK provides bucket and object operations, presigned URLs, and helper packages for credentials, encryption, notifications, lifecycle rules, and tags. Availability of each operation depends on the target service's features and configuration; see [API reference and compatibility](#api-reference-and-compatibility).
 
 The module path is `github.com/soulteary/otterio-sdk/v7`. The Go package name remains `minio`, so examples use an explicit `minio` import alias. When migrating an application, update imports for both the root module and helper packages such as `pkg/credentials` and `pkg/encrypt`.
 
-This is an independent project, not affiliated with, endorsed by, or sponsored by MinIO, Inc. Original copyright notices are retained in [NOTICE](./NOTICE) and the source files.
+---
 
 ## Install
 
@@ -23,6 +43,8 @@ go get github.com/soulteary/otterio-sdk/v7
 ```
 
 For an existing module, run only the `go get` command. To select a release, append its tag to the module path, for example `@v7.3.1`; see the repository's [tags](https://github.com/soulteary/otterio-sdk/tags).
+
+---
 
 ## Quick start: upload and read an object
 
@@ -126,6 +148,8 @@ go run .
 
 The program logs the uploaded object size and prints `Hello from OtterIO SDK!` after reading the object back. `GetObject` returns a lazy reader: errors can occur when reading, so check `io.Copy` (or other read operations) and close the object when done. The sample leaves the bucket and uploaded object in your test server.
 
+---
+
 ## API reference and compatibility
 
 - [API reference](./docs/API.md): constructors, options, operations, and snippets maintained in this repository.
@@ -134,6 +158,8 @@ The program logs the uploaded object size and prints `Hello from OtterIO SDK!` a
 - [Encryption helpers](./pkg/encrypt), [notifications](./pkg/notification), [lifecycle](./pkg/lifecycle), and [tags](./pkg/tags).
 
 S3 operations depend on the target server's features and configuration. Methods described as MinIO/AIStor extensions in the API reference are inherited client APIs and do not establish OtterIO server support for those features. Check the [OtterIO server documentation](https://github.com/soulteary/otterio#further-reading) and validate the operations your application uses against your target server. AWS-specific operations likewise require the corresponding AWS service.
+
+---
 
 ## Examples
 
@@ -209,6 +235,8 @@ S3 operations depend on the target server's features and configuration. Methods 
 -	[presignedheadobject.go](./examples/s3/presignedheadobject.go)
 -	[presignedpostpolicy.go](./examples/s3/presignedpostpolicy.go)
 
+---
+
 ## Development and contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for local checks and live-server tests. To check the SDK without a storage server:
@@ -226,6 +254,8 @@ go run listbuckets.go
 ```
 
 Do not use `go run .` or `go run *.go` inside these example directories. Most examples retain upstream placeholders or public test endpoints and need configuration before use. Compiling them does not validate server compatibility.
+
+---
 
 ## Upstream and license
 
