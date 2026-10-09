@@ -6,6 +6,8 @@ Submit issues and pull requests to [soulteary/otterio-sdk](https://github.com/so
 
 Use Go 1.27.2 or newer, as declared in [go.mod](./go.mod). Fork or clone the repository, create a branch, and make a focused change. The SDK module and its helper imports use `github.com/soulteary/otterio-sdk/v7`; the root Go package is still named `minio`.
 
+The `go.mod` tool directive pins golangci-lint. Keep its transitive dependencies compatible: golangci-lint v2.14.0 still requires `gobwas/glob v0.2.3`, `nishanths/exhaustive v0.13.0`, and `nishanths/predeclared v0.2.2`; newer versions remove APIs used by the linter. Run `make lint` after updating tool dependencies.
+
 For code changes, format the edited Go files and add tests that cover the changed behavior. Follow [Go Code Review Comments](https://go.dev/wiki/CodeReviewComments). Keep original copyright and license notices.
 
 Run these checks from the repository root:
