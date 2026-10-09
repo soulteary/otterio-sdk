@@ -1,0 +1,77 @@
+name: Optional AIStor compatibility
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: Reviewed AIStor image pinned by sha256 digest
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  integration:
+    name: AIStor compatibility on Go ${{ matrix.go-version }} and ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        go-version: [1.27.2]
+        os: [ubuntu-latest]
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-go-ci
+        with:
+          purpose: aistor-compatibility
+
+      - name: Build on ${{ matrix.os }}
+        env:
+          MINT_MODE: full
+          SERVER_ENDPOINT: localhost:9000
+          ACCESS_KEY: minioadmin
+          SECRET_KEY: minioadmin
+          ENABLE_HTTPS: 1
+          MINIO_KMS_SECRET_KEY: my-minio-key:OSMM+vkKUTCvQs9YL/CVMIMt43HFhkUpqJxTmGl6rYw=
+          SSL_CERT_FILE: /tmp/certs-dir/public.crt
+          MINIO_CI_CD: true
+          MINIO_LICENSE: ${{ secrets.AISTOR_LICENSE }}
+          AISTOR_IMAGE: ${{ inputs.image }}
+          MINT_NO_FULL_OBJECT: true
+        run: |
+          mkdir -p /tmp/certs-dir
+          cp testcerts/* /tmp/certs-dir
+          : "${AISTOR_IMAGE:?Supply a reviewed AIStor image digest}"
+          : "${MINIO_LICENSE:?Configure the AISTOR_LICENSE repository secret}"
+          case "$AISTOR_IMAGE" in
+            quay.io/minio/aistor/minio@sha256:*) ;;
+            *) echo "Use a reviewed quay.io/minio/aistor/minio@sha256 digest" >&2; exit 1 ;;
+          esac
+          docker pull "$AISTOR_IMAGE"
+          docker rm -f aistor >/dev/null 2>&1 || true
+          docker run -d --name aistor \
+            -p 9000:9000 \
+            -v /tmp/certs-dir:/certs \
+            -e MINIO_ROOT_USER=minioadmin \
+            -e MINIO_ROOT_PASSWORD=minioadmin \
+            -e MINIO_CI_CD=true \
+            -e MINIO_KMS_SECRET_KEY="${MINIO_KMS_SECRET_KEY}" \
+            -e MINIO_LICENSE="${MINIO_LICENSE}" \
+            "$AISTOR_IMAGE" \
+            server --quiet --certs-dir /certs /data/{1...4}
+          ready=false
+          for _ in $(seq 1 60); do
+            if curl -sf --cacert /tmp/certs-dir/public.crt https://localhost:9000/minio/health/ready >/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" != true ]; then
+            docker logs aistor
+            echo "AIStor server did not become ready within 60 seconds" >&2
+            exit 1
+          fi
+          make test functional-test
+

@@ -47,7 +47,7 @@ go build -race -o /tmp/otterio-sdk-functional-tests functional_tests.go
 MINT_MODE=full /tmp/otterio-sdk-functional-tests
 ```
 
-Do not run that program without `SERVER_ENDPOINT`: it defaults to the upstream public `play.min.io` service when the variable is absent. The suite contains AWS- and MinIO/AIStor-specific cases; a server that implements basic S3 operations may not implement every case. The [Linux](./.github/workflows/go.yml) and [Windows](./.github/workflows/go-windows.yml) workflows show the current CI server and configuration, including encryption and other features needed by the suite.
+Do not run that program without `SERVER_ENDPOINT`: it exits before making requests when the endpoint or credentials are absent. The full functional suite contains AWS- and MinIO/AIStor-specific cases; a server that implements basic S3 operations may not implement every case. Default Linux and Windows CI run local tests and eight core operation tests against a pinned OtterIO server. Extended AIStor coverage is a manual workflow requiring a reviewed image digest and the `AISTOR_LICENSE` secret. The [Linux](./.github/workflows/go.yml) and [Windows](./.github/workflows/go-windows.yml) workflows show the current CI server and configuration, including encryption and other features needed by the suite.
 
 `make checks` combines lint, package tests, example builds, and functional tests. Its `test` and `functional-test` targets hard-code a TLS server at `localhost:9000` with upstream test credentials, so use the explicit commands above for a different server or credentials.
 

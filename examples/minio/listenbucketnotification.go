@@ -23,12 +23,33 @@ package main
 import (
 	"context"
 	"log"
+	"os"
+	"strconv"
 
 	"github.com/soulteary/otterio-sdk/v7"
 	"github.com/soulteary/otterio-sdk/v7/pkg/credentials"
 )
 
 func main() {
+	requiredEnv := func(name string) string {
+		value := os.Getenv(name)
+		if value == "" {
+			log.Fatalf("Set %s before running this example", name)
+		}
+		return value
+	}
+	endpoint := requiredEnv("S3_ENDPOINT")
+	accessKey := requiredEnv("S3_ACCESS_KEY")
+	secretKey := requiredEnv("S3_SECRET_KEY")
+	secure := true
+	if value := os.Getenv("S3_USE_TLS"); value != "" {
+		var err error
+		secure, err = strconv.ParseBool(value)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	// Note: YOUR-ACCESSKEYID, YOUR-SECRETACCESSKEY and my-bucketname are
 	// dummy values, please replace them with original values.
 
@@ -37,9 +58,9 @@ func main() {
 
 	// New returns an Amazon S3 compatible client object. API compatibility (v2 or v4) is automatically
 	// determined based on the Endpoint value.
-	minioClient, err := minio.New("play.min.io", &minio.Options{
-		Creds:  credentials.NewStaticV4("YOUR-ACCESSKEYID", "YOUR-SECRETACCESSKEY", ""),
-		Secure: true,
+	minioClient, err := minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKey, secretKey, os.Getenv("S3_SESSION_TOKEN")),
+		Secure: secure,
 	})
 	if err != nil {
 		log.Fatalln(err)

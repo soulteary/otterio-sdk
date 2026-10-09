@@ -28,9 +28,9 @@ go build -race -o /tmp/otterio-sdk-functional-tests functional_tests.go
 MINT_MODE=full /tmp/otterio-sdk-functional-tests
 ```
 
-Without `SERVER_ENDPOINT`, the functional program defaults to the upstream public `play.min.io` endpoint. It covers extensions that are not implemented by every S3 service. See the CI workflows for the current test server setup.
+The functional program requires `SERVER_ENDPOINT`, `ACCESS_KEY` and `SECRET_KEY`, and exits before making requests if any are absent. It covers extensions that are not implemented by every S3 service. See the CI workflows for the current test server setup.
 
-`make checks` includes functional tests. The `make test`, `make functional-test`, and `make functional-test-notls` targets embed upstream localhost test credentials; use explicit commands when testing different credentials or endpoints.
+`make checks` includes functional tests. The `make test`, `make functional-test`, and `make functional-test-notls` targets require explicit endpoint and credentials. Set `ENABLE_HTTPS=1` for TLS; the notls target selects HTTP.
 
 The directories `examples/s3` and `examples/minio` are nested Go modules that replace the SDK dependency with the local checkout. Each file is a separate executable:
 

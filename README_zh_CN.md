@@ -188,3 +188,14 @@ go build ./...
 本项目保留了上游的 `minio` Go 包名，以及部分 MinIO 特有 API 名称、协议字段和扩展说明。上游文档可作为背景资料；本分叉的行为请以本仓库的源代码和文档为准。
 
 SDK 按 [Apache License, Version 2.0](./LICENSE) 分发，上游署名见 [NOTICE](./NOTICE)。“MinIO” 是 MinIO, Inc. 的商标，此处仅用于说明项目来源；Apache 许可证不授予商标权。
+
+## 显式测试与示例配置
+
+原先连接公共演示服务的示例现在要求设置 `S3_ENDPOINT`、`S3_ACCESS_KEY` 和
+`S3_SECRET_KEY`，默认启用 TLS；本地 HTTP 服务使用 `S3_USE_TLS=false`。
+功能测试必须显式提供 `SERVER_ENDPOINT`、`ACCESS_KEY`、`SECRET_KEY`。
+默认 CI 验证固定提交的 OtterIO；完整 AIStor 兼容测试为手动入口。
+
+`credentials.NewEnvOtterIO()` 读取 `OTTERIO_ROOT_USER` / `OTTERIO_ROOT_PASSWORD`，
+并支持旧 `OTTERIO_ACCESS_KEY` / `OTTERIO_SECRET_KEY`。
+`credentials.NewFileOC(filename, alias)` 读取 OC 配置；已有 MinIO 凭据 API 保持兼容。

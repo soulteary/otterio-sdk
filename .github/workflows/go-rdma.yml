@@ -22,11 +22,11 @@ jobs:
         - { os: ubuntu-24.04-arm, arch: "arm64" }
 
     steps:
-    - name: Checkout minio-go
+    - name: Checkout otterio-sdk
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
-        path: "minio-go"
+        path: "otterio-sdk"
 
     - name: Checkout minio-cpp
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -115,17 +115,17 @@ jobs:
         sudo cp -P "vendor/s3rdma/lib/${s3rdma_arch}"/* /usr/local/lib/
         sudo ldconfig
 
-    - uses: ./minio-go/.github/actions/setup-go-ci
+    - uses: ./otterio-sdk/.github/actions/setup-go-ci
       with:
         purpose: rdma
         cache-salt: ${{ steps.native-cache.outputs.identity }}
-        module-directory: minio-go
+        module-directory: otterio-sdk
         dependency-files: |
-          minio-go/go.mod
-          minio-go/go.sum
+          otterio-sdk/go.mod
+          otterio-sdk/go.sum
 
-    - name: Build minio-go with -tags=rdma
-      working-directory: minio-go
+    - name: Build otterio-sdk with -tags=rdma
+      working-directory: otterio-sdk
       run: |
         go build -tags=rdma ./...
         go build -tags=rdma -o /tmp/rdma-test ./cmd/rdma-test
@@ -133,6 +133,6 @@ jobs:
     # The buffer-size guards run before any C call, so they are testable on a
     # runner with no RDMA device. Without this step nothing under -tags=rdma is
     # ever executed, only compiled.
-    - name: Test minio-go with -tags=rdma
-      working-directory: minio-go
+    - name: Test otterio-sdk with -tags=rdma
+      working-directory: otterio-sdk
       run: go test -tags=rdma -count=1 -run 'RDMA' -v .

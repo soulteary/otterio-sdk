@@ -27,6 +27,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/soulteary/otterio-sdk/v7"
@@ -34,13 +35,32 @@ import (
 )
 
 func main() {
-	const (
+	requiredEnv := func(name string) string {
+		value := os.Getenv(name)
+		if value == "" {
+			log.Fatalf("Set %s before running this example", name)
+		}
+		return value
+	}
+	endpoint := requiredEnv("S3_ENDPOINT")
+	accessKey := requiredEnv("S3_ACCESS_KEY")
+	secretKey := requiredEnv("S3_SECRET_KEY")
+	secure := true
+	if value := os.Getenv("S3_USE_TLS"); value != "" {
+		var err error
+		secure, err = strconv.ParseBool(value)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	var (
 		// Note: These constants are dummy values,
 		// please replace them with values for your setup.
-		YOURACCESSKEYID     = "Q3AM3UQ867SPQQA43P2F"
-		YOURSECRETACCESSKEY = "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
-		YOURENDPOINT        = "play.min.io"
-		YOURBUCKET          = "mybucket" // 'mc mb play/mybucket' if it does not exist.
+		YOURACCESSKEYID     = accessKey
+		YOURSECRETACCESSKEY = secretKey
+		YOURENDPOINT        = endpoint
+		YOURBUCKET          = "mybucket" // 'oc mb store/mybucket' if it does not exist.
 	)
 
 	// Requests are always secure (HTTPS) by default. Set secure=false to enable insecure (HTTP) access.
@@ -50,7 +70,7 @@ func main() {
 	// determined based on the Endpoint value.
 	minioClient, err := minio.New(YOURENDPOINT, &minio.Options{
 		Creds:  credentials.NewStaticV4(YOURACCESSKEYID, YOURSECRETACCESSKEY, ""),
-		Secure: true,
+		Secure: secure,
 	})
 	if err != nil {
 		log.Fatalln(err)

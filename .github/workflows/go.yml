@@ -49,69 +49,45 @@ jobs:
         run: make examples
 
   integration:
-    name: Race and functional tests on Go ${{ matrix.go-version }} and ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        go-version: [1.27.2]
-        os: [ubuntu-latest]
+    name: OtterIO core integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-
       - uses: ./.github/actions/setup-go-ci
         with:
-          purpose: integration
-
-      - name: Build on ${{ matrix.os }}
+          purpose: otterio-integration
+      - name: Check out the reviewed OtterIO server
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: soulteary/otterio
+          ref: 4022b784cbb2e1d778411e8385f1e885d0c14216
+          path: .ci-otterio
+          persist-credentials: false
+      - name: Build OtterIO
+        working-directory: .ci-otterio
+        run: go build -o "$RUNNER_TEMP/otterio" .
+      - name: Run local and OtterIO core tests
         env:
-          MINT_MODE: full
-          SERVER_ENDPOINT: localhost:9000
-          ACCESS_KEY: minioadmin
-          SECRET_KEY: minioadmin
-          ENABLE_HTTPS: 1
-          MINIO_KMS_SECRET_KEY: my-minio-key:OSMM+vkKUTCvQs9YL/CVMIMt43HFhkUpqJxTmGl6rYw=
-          SSL_CERT_FILE: /tmp/certs-dir/public.crt
-          MINIO_CI_CD: true
-          MINT_NO_FULL_OBJECT: true
+          OTTERIO_ROOT_USER: sdk-ci-user
+          OTTERIO_ROOT_PASSWORD: sdk-ci-disposable-password
+          ACCESS_KEY: sdk-ci-user
+          SECRET_KEY: sdk-ci-disposable-password
+          ENABLE_HTTPS: "0"
         run: |
-          mkdir -p /tmp/certs-dir
-          cp testcerts/* /tmp/certs-dir
-          # Test against the AIStor :edge-daily image so the latest AIStor APIs
-          # (object annotations) and checksum algorithms (xxhash3/xxhash128,
-          # sha512, md5) are available to the functional tests.
-          docker pull quay.io/minio/aistor/minio:edge-daily
-          # Free-tier AIStor license so the server allows writes (without a
-          # license the server boots read-only). This is a public FREE-plan
-          # license, not a secret.
-          MINIO_LICENSE="eyJhbGciOiJFUzM4NCIsInR5cCI6IkpXVCJ9.eyJhaWQiOjAsImNhcCI6MCwiaWF0IjoxLjc4MDAzMTY0NTUyMzA5ODM1OGU5LCJpc3MiOiJzdWJuZXRAbWluLmlvIiwibGlkIjoiYjNhYTliNGQtOTUxYy00MjIzLTgyMmEtZGY2NjE5MDNjOWFkIiwibm9kZXMiOjEsIm9yZyI6IiIsInBsYW4iOiJGUkVFIiwicHJvZHVjdCI6IkFJU3RvciIsInN1YiI6ImRldkBtaW5pby5pbyIsInRyaWFsIjpmYWxzZX0.Aq0kaFgd5SMHYEK7fIYzPsU4xlS119sj-BSyftCDpmtHIbW6KNFXGA9nbKPc17ZXKgcQgUoaPncsq30EOy7PyH-lp3LPpy3rPoD7ptJHI2v0jqpvlnP0cVGK0Yuw3vib"
-          docker rm -f aistor >/dev/null 2>&1 || true
-          docker run -d --name aistor \
-            -p 9000:9000 \
-            -v /tmp/certs-dir:/certs \
-            -e MINIO_ROOT_USER=minioadmin \
-            -e MINIO_ROOT_PASSWORD=minioadmin \
-            -e MINIO_CI_CD=true \
-            -e MINIO_KMS_SECRET_KEY="${MINIO_KMS_SECRET_KEY}" \
-            -e MINIO_LICENSE="${MINIO_LICENSE}" \
-            quay.io/minio/aistor/minio:edge-daily \
-            server --quiet --certs-dir /certs /data/{1...4}
+          go test -short -race ./...
+          "$RUNNER_TEMP/otterio" server --address 127.0.0.1:9000 "$RUNNER_TEMP/sdk-data" >"$RUNNER_TEMP/otterio.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           ready=false
           for _ in $(seq 1 60); do
-            if curl -sf --cacert /tmp/certs-dir/public.crt https://localhost:9000/minio/health/ready >/dev/null; then
-              ready=true
-              break
-            fi
+            if curl -sf http://127.0.0.1:9000/otterio/health/ready >/dev/null; then ready=true; break; fi
             sleep 1
           done
-          if [ "$ready" != true ]; then
-            docker logs aistor
-            echo "AIStor server did not become ready within 60 seconds" >&2
-            exit 1
-          fi
-          make test functional-test
+          if [ "$ready" != true ]; then cat "$RUNNER_TEMP/otterio.log"; exit 1; fi
+          SERVER_ENDPOINT=127.0.0.1:9000 go test -race -count=1 -run '^(TestGetObjectCore|TestGetObjectContentEncoding|TestGetBucketPolicy|TestCoreCopyObject|TestCoreCopyObjectPart|TestCorePutObject|TestCoreGetObjectMetadata|TestCoreMultipartUpload)$' .
 
   # Preserve the existing required-check name and require both parallel jobs.
   build:
@@ -120,7 +96,7 @@ jobs:
     needs: [checks, integration]
     runs-on: ubuntu-latest
     steps:
-      - name: Require lint, examples, race and functional tests
+      - name: Require lint, examples, race and OtterIO core tests
         env:
           CHECKS_RESULT: ${{ needs.checks.result }}
           INTEGRATION_RESULT: ${{ needs.integration.result }}

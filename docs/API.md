@@ -3376,3 +3376,12 @@ Start background endpoint health monitoring. The interval must be at least one s
 | -------- | -------------------- | ------------------------------- |
 | `cancel` | _context.CancelFunc_ | Function to cancel health check |
 | `err`    | _error_              | Standard Error                  |
+
+## OtterIO and OC credentials
+
+`credentials.NewEnvOtterIO()` reads `OTTERIO_ROOT_USER` / `OTTERIO_ROOT_PASSWORD`,
+falling back to the legacy `OTTERIO_ACCESS_KEY` / `OTTERIO_SECRET_KEY` pair.
+`credentials.NewFileOC(filename, alias)` reads an OC alias from an explicit file
+or the default `~/.oc/config.json` (`oc/config.json` on Windows).
+`OC_SHARED_CREDENTIALS_FILE` and `OC_ALIAS` provide optional overrides.
+The existing MinIO providers keep their original environment variables and `.mc` paths.

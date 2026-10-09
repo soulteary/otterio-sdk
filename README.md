@@ -163,6 +163,10 @@ S3 operations depend on the target server's features and configuration. Methods 
 
 ## Examples
 
+Examples that previously used an upstream demo service now require `S3_ENDPOINT`,
+`S3_ACCESS_KEY`, and `S3_SECRET_KEY`. Set `S3_USE_TLS=false` only for your local HTTP
+server; TLS is the default. Extension examples require support from the target server.
+
 ### Bucket Operations
 
 -	[makebucket.go](./examples/s3/makebucket.go)

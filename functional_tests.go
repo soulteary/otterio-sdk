@@ -301,17 +301,6 @@ func isRunOnFail() bool {
 	return os.Getenv("RUN_ON_FAIL") == "1"
 }
 
-func init() {
-	// If server endpoint is not set, all tests default to
-	// using https://play.min.io
-	if os.Getenv(serverEndpoint) == "" {
-		os.Setenv(serverEndpoint, "play.min.io")
-		os.Setenv(accessKey, "Q3AM3UQ867SPQQA43P2F")
-		os.Setenv(secretKey, "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG")
-		os.Setenv(enableHTTPS, "1")
-	}
-}
-
 var mintDataDir = os.Getenv("MINT_DATA_DIR")
 
 func getMintDataDirFilePath(filename string) (fp string) {
@@ -15780,6 +15769,12 @@ func cmpChecksum(oi minio.ObjectInfo, chksums wantChecksums) error {
 }
 
 func main() {
+	for _, name := range []string{serverEndpoint, accessKey, secretKey} {
+		if strings.TrimSpace(os.Getenv(name)) == "" {
+			fmt.Fprintf(os.Stderr, "%s must be set for functional tests against a disposable server\n", name)
+			os.Exit(1)
+		}
+	}
 	slog.SetDefault(slog.New(slog.NewJSONHandler(
 		os.Stdout,
 		&slog.HandlerOptions{

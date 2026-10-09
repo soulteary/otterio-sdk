@@ -9,6 +9,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Test on Go ${{ matrix.go-version }} and ${{ matrix.os }}
@@ -29,58 +32,45 @@ jobs:
           go-version: ${{ matrix.go-version }}
         id: go
 
-      - name: Build on ${{ matrix.os }}
-        # Explicit because runs-on is a matrix expression: nothing can infer the
-        # shell from it, and -SkipCertificateCheck below is pwsh-only.
+      - name: Check out the reviewed OtterIO server
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: soulteary/otterio
+          ref: 4022b784cbb2e1d778411e8385f1e885d0c14216
+          path: .ci-otterio
+          persist-credentials: false
+      - name: Build OtterIO
+        shell: pwsh
+        working-directory: .ci-otterio
+        run: |
+          go build -o "$env:RUNNER_TEMP/otterio.exe" .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run local and OtterIO core tests
         shell: pwsh
         env:
-          MINT_MODE: full
-          SERVER_ENDPOINT: localhost:9000
-          ACCESS_KEY: minioadmin
-          SECRET_KEY: minioadmin
-          ENABLE_HTTPS: 1
-          MINIO_KMS_SECRET_KEY: my-minio-key:OSMM+vkKUTCvQs9YL/CVMIMt43HFhkUpqJxTmGl6rYw=
-          MINIO_CI_CD: true
-          MINT_NO_FULL_OBJECT: true
-          # Free-tier AIStor license so the server allows writes (without a
-          # license the server boots read-only). This is a public FREE-plan
-          # license, not a secret.
-          MINIO_LICENSE: eyJhbGciOiJFUzM4NCIsInR5cCI6IkpXVCJ9.eyJhaWQiOjAsImNhcCI6MCwiaWF0IjoxLjc4MDAzMTY0NTUyMzA5ODM1OGU5LCJpc3MiOiJzdWJuZXRAbWluLmlvIiwibGlkIjoiYjNhYTliNGQtOTUxYy00MjIzLTgyMmEtZGY2NjE5MDNjOWFkIiwibm9kZXMiOjEsIm9yZyI6IiIsInBsYW4iOiJGUkVFIiwicHJvZHVjdCI6IkFJU3RvciIsInN1YiI6ImRldkBtaW5pby5pbyIsInRyaWFsIjpmYWxzZX0.Aq0kaFgd5SMHYEK7fIYzPsU4xlS119sj-BSyftCDpmtHIbW6KNFXGA9nbKPc17ZXKgcQgUoaPncsq30EOy7PyH-lp3LPpy3rPoD7ptJHI2v0jqpvlnP0cVGK0Yuw3vib
+          OTTERIO_ROOT_USER: sdk-ci-user
+          OTTERIO_ROOT_PASSWORD: sdk-ci-disposable-password
+          ACCESS_KEY: sdk-ci-user
+          SECRET_KEY: sdk-ci-disposable-password
+          ENABLE_HTTPS: "0"
         run: |
-          # Go 1.27 also honors SSL_CERT_FILE on Windows. Compile with system
-          # CAs so downloading modules does not use the local test server's CA.
-          go build -o "$env:RUNNER_TEMP/functional_tests.exe" functional_tests.go
-          if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
-          }
-          New-Item -ItemType Directory -Path "$env:temp/certs-dir"
-          Copy-Item -Path testcerts\* -Destination "$env:temp/certs-dir"
-          Invoke-WebRequest -Uri https://dl.min.io/aistor/minio/release/windows-amd64/minio.exe -OutFile $HOME/minio.exe
-          $server = Start-Process -PassThru -NoNewWindow -FilePath "$HOME/minio.exe" -ArgumentList "server", "--quiet", "--certs-dir", "$env:temp/certs-dir", "$env:temp/fs{1...4}"
+          go test -short -race ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $server = Start-Process -PassThru -NoNewWindow -FilePath "$env:RUNNER_TEMP/otterio.exe" -ArgumentList "server", "--address", "127.0.0.1:9000", "$env:RUNNER_TEMP/sdk-data"
           try {
             $ready = $false
             foreach ($i in 1..60) {
-              if ($server.HasExited) {
-                throw "AIStor server exited with code $($server.ExitCode) before becoming ready"
-              }
+              if ($server.HasExited) { throw "OtterIO exited before becoming ready" }
               try {
-                Invoke-WebRequest -SkipCertificateCheck -UseBasicParsing -Uri https://localhost:9000/minio/health/ready | Out-Null
+                Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:9000/otterio/health/ready | Out-Null
                 $ready = $true
                 break
-              } catch {
-                Start-Sleep -Seconds 1
-              }
+              } catch { Start-Sleep -Seconds 1 }
             }
-            if (-not $ready) {
-              throw "AIStor server did not become ready within 60 seconds"
-            }
-            $env:SSL_CERT_FILE = "$env:temp/certs-dir/public.crt"
-            & "$env:RUNNER_TEMP/functional_tests.exe"
-            if ($LASTEXITCODE -ne 0) {
-              throw "Functional tests failed with exit code $LASTEXITCODE"
-            }
+            if (-not $ready) { throw "OtterIO did not become ready within 60 seconds" }
+            $env:SERVER_ENDPOINT = "127.0.0.1:9000"
+            go test -race -count=1 -run '^(TestGetObjectCore|TestGetObjectContentEncoding|TestGetBucketPolicy|TestCoreCopyObject|TestCoreCopyObjectPart|TestCorePutObject|TestCoreGetObjectMetadata|TestCoreMultipartUpload)$' .
+            if ($LASTEXITCODE -ne 0) { throw "Core tests failed with exit code $LASTEXITCODE" }
           } finally {
-            if (-not $server.HasExited) {
-              Stop-Process -Id $server.Id
-            }
+            if (-not $server.HasExited) { Stop-Process -Id $server.Id }
           }
