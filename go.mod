@@ -11,8 +11,8 @@ require (
 	github.com/klauspost/compress v1.20.1
 	github.com/klauspost/crc32 v1.3.0
 	github.com/rs/xid v1.6.0
-	github.com/soulteary/otterio-kits/crc64nvme v1.1.2
-	github.com/soulteary/otterio-kits/md5-simd v1.1.3
+	github.com/soulteary/otterio-kits/crc64nvme v1.1.3
+	github.com/soulteary/otterio-kits/md5-simd v1.2.0
 	github.com/tinylib/msgp v1.6.5
 	github.com/zeebo/xxh3 v1.1.0
 	go.yaml.in/yaml/v3 v3.0.5
