@@ -4,7 +4,7 @@ Submit issues and pull requests to [soulteary/otterio-sdk](https://github.com/so
 
 ## Local development
 
-Use Go 1.27.1 or newer, as declared in [go.mod](./go.mod). Fork or clone the repository, create a branch, and make a focused change. The SDK module and its helper imports use `github.com/soulteary/otterio-sdk/v7`; the root Go package is still named `minio`.
+Use Go 1.27.2 or newer, as declared in [go.mod](./go.mod). Fork or clone the repository, create a branch, and make a focused change. The SDK module and its helper imports use `github.com/soulteary/otterio-sdk/v7`; the root Go package is still named `minio`.
 
 For code changes, format the edited Go files and add tests that cover the changed behavior. Follow [Go Code Review Comments](https://go.dev/wiki/CodeReviewComments). Keep original copyright and license notices.
 

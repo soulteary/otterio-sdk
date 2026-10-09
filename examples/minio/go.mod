@@ -1,6 +1,6 @@
 module github.com/soulteary/otterio-sdk/examples/minio
 
-go 1.27.1
+go 1.27.2
 
 // Overridden by `replace` below, to point all versions at the local otterio-sdk source, so version shouldn't matter here.
 require github.com/soulteary/otterio-sdk/v7 v7.0.73

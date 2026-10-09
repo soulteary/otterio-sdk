@@ -4,7 +4,7 @@ This file records development commands and layout for OtterIO SDK. User-facing s
 
 ## Commands
 
-Use the Go version declared in `go.mod` (currently Go 1.27.1 or newer).
+Use the Go version declared in `go.mod` (currently Go 1.27.2 or newer).
 
 ```sh
 # Local checks without a storage server

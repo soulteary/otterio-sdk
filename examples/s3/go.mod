@@ -1,6 +1,6 @@
 module github.com/soulteary/otterio-sdk/examples/s3
 
-go 1.27.1
+go 1.27.2
 
 require (
 	github.com/cheggaaa/pb v1.0.29

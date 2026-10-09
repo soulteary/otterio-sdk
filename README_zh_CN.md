@@ -1,7 +1,7 @@
 # OtterIO Go SDK
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
-[![Go](https://img.shields.io/badge/Go-1.27.1%2B-00ADD8.svg?logo=go)](./go.mod)
+[![Go](https://img.shields.io/badge/Go-1.27.2%2B-00ADD8.svg?logo=go)](./go.mod)
 
 [English](./README.md) · 简体中文
 
@@ -13,7 +13,7 @@ OtterIO SDK 是访问 Amazon S3 兼容对象存储的 Go 客户端，可用于�
 
 ## 安装
 
-按照 [go.mod](./go.mod) 的要求，使用 **Go 1.27.1 或更新版本**。新建一个 Go 模块：
+按照 [go.mod](./go.mod) 的要求，使用 **Go 1.27.2 或更新版本**。新建一个 Go 模块：
 
 ```sh
 mkdir otterio-sdk-example

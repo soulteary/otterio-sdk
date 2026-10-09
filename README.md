@@ -1,7 +1,7 @@
 # OtterIO Go SDK
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
-[![Go](https://img.shields.io/badge/Go-1.27.1%2B-00ADD8.svg?logo=go)](./go.mod)
+[![Go](https://img.shields.io/badge/Go-1.27.2%2B-00ADD8.svg?logo=go)](./go.mod)
 
 English · [简体中文](./README_zh_CN.md)
 
@@ -13,7 +13,7 @@ This is an independent project, not affiliated with, endorsed by, or sponsored b
 
 ## Install
 
-Use Go **1.27.1 or newer**, as declared in [go.mod](./go.mod), in a Go module:
+Use Go **1.27.2 or newer**, as declared in [go.mod](./go.mod), in a Go module:
 
 ```sh
 mkdir otterio-sdk-example
