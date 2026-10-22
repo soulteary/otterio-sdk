@@ -59,15 +59,19 @@ jobs:
           $server = Start-Process -PassThru -NoNewWindow -FilePath "$env:RUNNER_TEMP/otterio.exe" -ArgumentList "server", "--address", "127.0.0.1:9000", "$env:RUNNER_TEMP/sdk-data"
           try {
             $ready = $false
+            $lastReadinessError = "No readiness response"
             foreach ($i in 1..60) {
               if ($server.HasExited) { throw "OtterIO exited before becoming ready" }
               try {
-                Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:9000/otterio/health/ready | Out-Null
+                Invoke-WebRequest -UseBasicParsing -NoProxy -TimeoutSec 2 -ErrorAction Stop -Uri http://127.0.0.1:9000/otterio/health/ready | Out-Null
                 $ready = $true
                 break
-              } catch { Start-Sleep -Seconds 1 }
+              } catch {
+                $lastReadinessError = $_.Exception.Message
+                Start-Sleep -Seconds 1
+              }
             }
-            if (-not $ready) { throw "OtterIO did not become ready within 60 seconds" }
+            if (-not $ready) { throw "OtterIO readiness failed: $lastReadinessError" }
             $env:SERVER_ENDPOINT = "127.0.0.1:9000"
             go test -race -count=1 -run '^(TestGetObjectCore|TestGetObjectContentEncoding|TestGetBucketPolicy|TestCoreCopyObject|TestCoreCopyObjectPart|TestCorePutObject|TestCoreGetObjectMetadata|TestCoreMultipartUpload)$' .
             if ($LASTEXITCODE -ne 0) { throw "Core tests failed with exit code $LASTEXITCODE" }
