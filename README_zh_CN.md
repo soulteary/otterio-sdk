@@ -7,7 +7,7 @@
 **S3 兼容对象存储的 Go 客户端**
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
-[![Go](https://img.shields.io/badge/Go-1.27.2%2B-00ADD8.svg?logo=go&logoColor=white)](./go.mod)
+[![Go](https://img.shields.io/badge/Go-1.27.3%2B-00ADD8.svg?logo=go&logoColor=white)](./go.mod)
 [![GitHub](https://img.shields.io/badge/GitHub-soulteary%2Fotterio--sdk-181717.svg?logo=github)](https://github.com/soulteary/otterio-sdk)
 
 [English](./README.md) · 简体中文
@@ -33,7 +33,7 @@ SDK 提供存储桶与对象操作、预签名 URL，以及凭据、加密、事
 
 ## 安装
 
-按照 [go.mod](./go.mod) 的要求，使用 **Go 1.27.2 或更新版本**。新建一个 Go 模块：
+按照 [go.mod](./go.mod) 的要求，使用 **Go 1.27.3 或更新版本**。新建一个 Go 模块：
 
 ```sh
 mkdir otterio-sdk-example

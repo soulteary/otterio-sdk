@@ -1,6 +1,6 @@
 module github.com/soulteary/otterio-sdk/v7
 
-go 1.27.2
+go 1.27.3
 
 tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 
@@ -8,16 +8,16 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/dustin/go-humanize v1.1.0
 	github.com/google/uuid v1.6.0
-	github.com/klauspost/compress v1.20.1
+	github.com/klauspost/compress v1.20.3
 	github.com/klauspost/crc32 v1.3.0
 	github.com/rs/xid v1.6.0
-	github.com/soulteary/otterio-kits/crc64nvme v1.1.3
-	github.com/soulteary/otterio-kits/md5-simd v1.2.0
+	github.com/soulteary/otterio-kits/crc64nvme v1.1.4
+	github.com/soulteary/otterio-kits/md5-simd v1.2.1
 	github.com/tinylib/msgp v1.6.5
 	github.com/zeebo/xxh3 v1.1.0
 	go.yaml.in/yaml/v3 v3.0.5
-	golang.org/x/crypto v0.57.0
-	golang.org/x/net v0.60.0
+	golang.org/x/crypto v0.58.0
+	golang.org/x/net v0.61.0
 	gopkg.in/ini.v1 v1.67.3
 )
 
@@ -132,7 +132,7 @@ require (
 	github.com/karamaru-alpha/copyloopvar v1.2.2 // indirect
 	github.com/kisielk/errcheck v1.20.0 // indirect
 	github.com/kkHAIKE/contextcheck v1.1.6 // indirect
-	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
+	github.com/klauspost/cpuid/v2 v2.4.1 // indirect
 	github.com/kulti/thelper v0.7.1 // indirect
 	github.com/kunwardeep/paralleltest v1.0.16 // indirect
 	github.com/ldez/exptostd v0.4.5 // indirect
@@ -230,7 +230,7 @@ require (
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
-	golang.org/x/text v0.42.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/tools v0.51.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect

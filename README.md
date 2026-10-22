@@ -7,7 +7,7 @@
 **Go Client for S3-Compatible Object Storage**
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
-[![Go](https://img.shields.io/badge/Go-1.27.2%2B-00ADD8.svg?logo=go&logoColor=white)](./go.mod)
+[![Go](https://img.shields.io/badge/Go-1.27.3%2B-00ADD8.svg?logo=go&logoColor=white)](./go.mod)
 [![GitHub](https://img.shields.io/badge/GitHub-soulteary%2Fotterio--sdk-181717.svg?logo=github)](https://github.com/soulteary/otterio-sdk)
 
 English · [简体中文](./README_zh_CN.md)
@@ -33,7 +33,7 @@ The module path is `github.com/soulteary/otterio-sdk/v7`. The Go package name re
 
 ## Install
 
-Use Go **1.27.2 or newer**, as declared in [go.mod](./go.mod), in a Go module:
+Use Go **1.27.3 or newer**, as declared in [go.mod](./go.mod), in a Go module:
 
 ```sh
 mkdir otterio-sdk-example
