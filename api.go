@@ -184,7 +184,7 @@ type Options struct {
 // Global constants.
 const (
 	libraryName    = "otterio-sdk"
-	libraryVersion = "v7.3.2"
+	libraryVersion = "v7.3.3"
 )
 
 // User Agent should always following the below style.
