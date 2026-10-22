@@ -42,10 +42,10 @@ func TestFileOCDefaultAndExplicitConfig(t *testing.T) {
 	t.Setenv("OC_SHARED_CREDENTIALS_FILE", "")
 	t.Setenv("OC_ALIAS", "store")
 	for _, dir := range []string{".oc", "oc"} {
-		if err := os.MkdirAll(filepath.Join(home, dir), 0700); err != nil {
+		if err := os.MkdirAll(filepath.Join(home, dir), 0o700); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(home, dir, "config.json"), []byte(`{"version":"10","aliases":{"store":{"url":"http://localhost:9000","accessKey":"oc-user","secretKey":"oc-secret","api":"S3v4"}}}`), 0600); err != nil {
+		if err := os.WriteFile(filepath.Join(home, dir, "config.json"), []byte(`{"version":"10","aliases":{"store":{"url":"http://localhost:9000","accessKey":"oc-user","secretKey":"oc-secret","api":"S3v4"}}}`), 0o600); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -54,7 +54,7 @@ func TestFileOCDefaultAndExplicitConfig(t *testing.T) {
 		t.Fatalf("default OC config: %#v, %v", value, err)
 	}
 	file := filepath.Join(home, "explicit.json")
-	if err := os.WriteFile(file, []byte(`{"version":"10","aliases":{"other":{"accessKey":"explicit-user","secretKey":"explicit-secret","api":"S3v4"}}}`), 0600); err != nil {
+	if err := os.WriteFile(file, []byte(`{"version":"10","aliases":{"other":{"accessKey":"explicit-user","secretKey":"explicit-secret","api":"S3v4"}}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	value, err = (&FileOC{Filename: file, Alias: "other"}).RetrieveWithCredContext(nil)

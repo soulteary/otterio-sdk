@@ -28,16 +28,30 @@ func TestCORSXMLMarshal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, err := ParseBucketCorsConfig(bytes.NewReader(fileContents))
-	if err != nil {
-		t.Fatal(err)
-	}
-	remarshalled, err := c.ToXML()
-	if err != nil {
-		t.Fatal(err)
-	}
-	trimmedFileContents := bytes.TrimSpace(fileContents)
-	if !bytes.Equal(trimmedFileContents, remarshalled) {
-		t.Errorf("got: %s, want: %s", string(remarshalled), string(trimmedFileContents))
+	// Git may check this fixture out with CRLF on Windows. XML normalizes
+	// line endings, so compare against the canonical LF representation and
+	// exercise both input forms on every platform.
+	canonical := bytes.ReplaceAll(fileContents, []byte("\r\n"), []byte("\n"))
+	for _, tc := range []struct {
+		name string
+		data []byte
+	}{
+		{name: "LF", data: canonical},
+		{name: "CRLF", data: bytes.ReplaceAll(canonical, []byte("\n"), []byte("\r\n"))},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c, err := ParseBucketCorsConfig(bytes.NewReader(tc.data))
+			if err != nil {
+				t.Fatal(err)
+			}
+			remarshalled, err := c.ToXML()
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := bytes.TrimSpace(canonical)
+			if !bytes.Equal(want, remarshalled) {
+				t.Errorf("got: %s, want: %s", remarshalled, want)
+			}
+		})
 	}
 }

@@ -91,7 +91,7 @@ jobs:
 
   # Preserve the existing required-check name and require both parallel jobs.
   build:
-    name: Test on Go 1.27.2 and ubuntu-latest
+    name: Test on Go 1.27.3 and ubuntu-latest
     if: always()
     needs: [checks, integration]
     runs-on: ubuntu-latest
