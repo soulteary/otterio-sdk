@@ -63,11 +63,11 @@ jobs:
             foreach ($i in 1..60) {
               if ($server.HasExited) { throw "OtterIO exited before becoming ready" }
               try {
-                Invoke-WebRequest -UseBasicParsing -NoProxy -TimeoutSec 2 -ErrorAction Stop -Uri http://127.0.0.1:9000/otterio/health/ready | Out-Null
+                Invoke-WebRequest -UseBasicParsing -NoProxy -TimeoutSec 2 -ErrorAction Stop -UserAgent "otterio-sdk-ci" -Headers @{ Accept = "*/*" } -Uri http://127.0.0.1:9000/otterio/health/ready | Out-Null
                 $ready = $true
                 break
               } catch {
-                $lastReadinessError = $_.Exception.Message
+                $lastReadinessError = "$($_.Exception.Message) $($_.ErrorDetails.Message)"
                 Start-Sleep -Seconds 1
               }
             }
