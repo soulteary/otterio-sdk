@@ -17,11 +17,64 @@
 package minio
 
 import (
+	"context"
+	"errors"
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
+
+func TestComposeObjectAbortsAfterCallerCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var copies, aborts atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodHead:
+			w.Header().Set("Content-Length", "5242880")
+			w.Header().Set("Last-Modified", "Mon, 02 Jan 2006 15:04:05 GMT")
+			w.Header().Set("ETag", `"source-etag"`)
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodPost && r.URL.Query().Has("uploads"):
+			w.Header().Set("Content-Type", "application/xml")
+			_, _ = io.WriteString(w, `<InitiateMultipartUploadResult><Bucket>destination-bucket</Bucket><Key>destination</Key><UploadId>upload-1</UploadId></InitiateMultipartUploadResult>`)
+		case r.Method == http.MethodPut && r.URL.Query().Get("uploadId") == "upload-1":
+			copies.Add(1)
+			cancel()
+			<-r.Context().Done()
+		case r.Method == http.MethodDelete && r.URL.Query().Get("uploadId") == "upload-1":
+			aborts.Add(1)
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL)
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	}))
+	defer server.Close()
+
+	client, err := New(server.Listener.Addr().String(), &Options{Region: "us-east-1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = client.ComposeObject(ctx,
+		CopyDestOptions{Bucket: "destination-bucket", Object: "destination"},
+		CopySrcOptions{Bucket: "source-bucket", Object: "first"},
+		CopySrcOptions{Bucket: "source-bucket", Object: "second"},
+	)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected caller cancellation, got %v", err)
+	}
+	if got := copies.Load(); got != 1 {
+		t.Errorf("expected one attempted copy, got %d", got)
+	}
+	if got := aborts.Load(); got != 1 {
+		t.Errorf("expected one multipart abort after cancellation, got %d", got)
+	}
+}
 
 const (
 	gb1    = 1024 * 1024 * 1024

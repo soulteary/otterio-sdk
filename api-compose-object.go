@@ -136,7 +136,7 @@ func (opts CopyDestOptions) Marshal(header http.Header) {
 
 	if opts.Mode != RetentionMode("") && !opts.RetainUntilDate.IsZero() {
 		header.Set(amzLockMode, opts.Mode.String())
-		header.Set(amzLockRetainUntil, opts.RetainUntilDate.Format(time.RFC3339))
+		header.Set(amzLockRetainUntil, opts.RetainUntilDate.UTC().Format(time.RFC3339))
 	}
 
 	if opts.Encryption != nil {
@@ -606,6 +606,7 @@ func (c *Client) ComposeObject(ctx context.Context, dst CopyDestOptions, srcs ..
 			complPart, err := c.uploadPartCopy(ctx, dst.Bucket,
 				dst.Object, uploadID, partIndex, h)
 			if err != nil {
+				c.abortFailedUpload(ctx, dst.Bucket, dst.Object, uploadID)
 				return UploadInfo{}, err
 			}
 			if dst.Progress != nil {
