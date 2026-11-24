@@ -20,7 +20,7 @@ jobs:
     - name: Get govulncheck
       # The latest scanner may need a newer Go release. Allow that only while
       # installing it; the scan below still uses the SDK's pinned Go toolchain.
-      run: GOTOOLCHAIN=auto go install golang.org/x/vuln/cmd/govulncheck@latest
+      run: GOTOOLCHAIN=auto go install golang.org/x/vuln/cmd/govulncheck@v1.10.0
       shell: bash
     - name: Run govulncheck
       run: govulncheck ./...
