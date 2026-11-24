@@ -621,6 +621,7 @@ func (c *Client) ComposeObject(ctx context.Context, dst CopyDestOptions, srcs ..
 	uploadInfo, err := c.completeMultipartUpload(ctx, dst.Bucket, dst.Object, uploadID,
 		completeMultipartUpload{Parts: objParts}, PutObjectOptions{ServerSideEncryption: dst.Encryption})
 	if err != nil {
+		c.abortFailedUpload(ctx, dst.Bucket, dst.Object, uploadID)
 		return UploadInfo{}, err
 	}
 
