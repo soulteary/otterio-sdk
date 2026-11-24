@@ -89,9 +89,9 @@ jobs:
           if [ "$ready" != true ]; then cat "$RUNNER_TEMP/otterio.log"; exit 1; fi
           SERVER_ENDPOINT=127.0.0.1:9000 go test -race -count=1 -run '^(TestGetObjectCore|TestGetObjectContentEncoding|TestGetBucketPolicy|TestCoreCopyObject|TestCoreCopyObjectPart|TestCorePutObject|TestCoreGetObjectMetadata|TestCoreMultipartUpload)$' .
 
-  # Preserve the existing required-check name and require both parallel jobs.
+  # Require both parallel jobs before marking the Linux checks complete.
   build:
-    name: Test on Go 1.27.3 and ubuntu-latest
+    name: Test on Go 1.27.4 and ubuntu-latest
     if: always()
     needs: [checks, integration]
     runs-on: ubuntu-latest

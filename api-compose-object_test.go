@@ -17,11 +17,133 @@
 package minio
 
 import (
+	"context"
+	"errors"
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
+
+func TestComposeObjectAbortsAfterCallerCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var copies, aborts atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodHead:
+			w.Header().Set("Content-Length", "5242880")
+			w.Header().Set("Last-Modified", "Mon, 02 Jan 2006 15:04:05 GMT")
+			w.Header().Set("ETag", `"source-etag"`)
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodPost && r.URL.Query().Has("uploads"):
+			w.Header().Set("Content-Type", "application/xml")
+			_, _ = io.WriteString(w, `<InitiateMultipartUploadResult><Bucket>destination-bucket</Bucket><Key>destination</Key><UploadId>upload-1</UploadId></InitiateMultipartUploadResult>`)
+		case r.Method == http.MethodPut && r.URL.Query().Get("uploadId") == "upload-1":
+			copies.Add(1)
+			cancel()
+			<-r.Context().Done()
+		case r.Method == http.MethodDelete && r.URL.Query().Get("uploadId") == "upload-1":
+			aborts.Add(1)
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL)
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	}))
+	defer server.Close()
+
+	client, err := New(server.Listener.Addr().String(), &Options{Region: "us-east-1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = client.ComposeObject(ctx,
+		CopyDestOptions{Bucket: "destination-bucket", Object: "destination"},
+		CopySrcOptions{Bucket: "source-bucket", Object: "first"},
+		CopySrcOptions{Bucket: "source-bucket", Object: "second"},
+	)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected caller cancellation, got %v", err)
+	}
+	if got := copies.Load(); got != 1 {
+		t.Errorf("expected one attempted copy, got %d", got)
+	}
+	if got := aborts.Load(); got != 1 {
+		t.Errorf("expected one multipart abort after cancellation, got %d", got)
+	}
+}
+
+func TestComposeObjectAbortsAfterCompletionFailure(t *testing.T) {
+	for _, failure := range []string{"canceled", "server-error"} {
+		t.Run(failure, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			var copies, completes, aborts atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch {
+				case r.Method == http.MethodHead:
+					w.Header().Set("Content-Length", "5242880")
+					w.Header().Set("Last-Modified", "Mon, 02 Jan 2006 15:04:05 GMT")
+					w.Header().Set("ETag", `"source-etag"`)
+					w.WriteHeader(http.StatusOK)
+				case r.Method == http.MethodPost && r.URL.Query().Has("uploads"):
+					w.Header().Set("Content-Type", "application/xml")
+					_, _ = io.WriteString(w, `<InitiateMultipartUploadResult><Bucket>destination-bucket</Bucket><Key>destination</Key><UploadId>upload-1</UploadId></InitiateMultipartUploadResult>`)
+				case r.Method == http.MethodPut && r.URL.Query().Get("uploadId") == "upload-1":
+					copies.Add(1)
+					w.Header().Set("Content-Type", "application/xml")
+					_, _ = io.WriteString(w, `<CopyPartResult><LastModified>2009-10-28T22:32:00Z</LastModified><ETag>"part-etag"</ETag></CopyPartResult>`)
+				case r.Method == http.MethodPost && r.URL.Query().Get("uploadId") == "upload-1":
+					completes.Add(1)
+					_, _ = io.Copy(io.Discard, r.Body)
+					if failure == "canceled" {
+						cancel()
+						<-r.Context().Done()
+						return
+					}
+					w.Header().Set("Content-Type", "application/xml")
+					w.WriteHeader(http.StatusBadRequest)
+					_, _ = io.WriteString(w, `<Error><Code>InvalidPart</Code><Message>completion failed</Message></Error>`)
+				case r.Method == http.MethodDelete && r.URL.Query().Get("uploadId") == "upload-1":
+					aborts.Add(1)
+					if failure == "server-error" {
+						// A cleanup failure must not replace the completion error.
+						w.WriteHeader(http.StatusForbidden)
+						return
+					}
+					w.WriteHeader(http.StatusNoContent)
+				default:
+					t.Errorf("unexpected request: %s %s", r.Method, r.URL)
+					w.WriteHeader(http.StatusBadRequest)
+				}
+			}))
+			defer server.Close()
+
+			client, err := New(server.Listener.Addr().String(), &Options{Region: "us-east-1", MaxRetries: 1})
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = client.ComposeObject(ctx,
+				CopyDestOptions{Bucket: "destination-bucket", Object: "destination"},
+				CopySrcOptions{Bucket: "source-bucket", Object: "first"},
+				CopySrcOptions{Bucket: "source-bucket", Object: "second"},
+			)
+			if failure == "canceled" {
+				if !errors.Is(err, context.Canceled) {
+					t.Fatalf("expected caller cancellation, got %v", err)
+				}
+			} else if response := ToErrorResponse(err); response.Code != "InvalidPart" || response.Message != "completion failed" {
+				t.Fatalf("expected original completion error, got %v", err)
+			}
+			if copies.Load() != 2 || completes.Load() != 1 || aborts.Load() != 1 {
+				t.Errorf("expected 2 copies, 1 completion and 1 abort; got %d, %d, %d", copies.Load(), completes.Load(), aborts.Load())
+			}
+		})
+	}
+}
 
 const (
 	gb1    = 1024 * 1024 * 1024
