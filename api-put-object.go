@@ -121,9 +121,9 @@ type PutObjectOptions struct {
 	customHeaders http.Header
 }
 
-// SetMatchETag if etag matches while PUT MinIO returns an error
-// this is a MinIO specific extension to support optimistic locking
-// semantics.
+// SetMatchETag makes a write conditional on the current object's ETag matching
+// etag. The condition is sent on both single PUT and multipart completion.
+// Use "*" to require an existing object. Support depends on the server.
 func (opts *PutObjectOptions) SetMatchETag(etag string) {
 	if opts.customHeaders == nil {
 		opts.customHeaders = http.Header{}
@@ -135,9 +135,9 @@ func (opts *PutObjectOptions) SetMatchETag(etag string) {
 	}
 }
 
-// SetMatchETagExcept if etag does not match while PUT MinIO returns an
-// error this is a MinIO specific extension to support optimistic locking
-// semantics.
+// SetMatchETagExcept makes a write conditional on the current object's ETag not
+// matching etag. The condition is sent on both single PUT and multipart completion.
+// Use "*" to require that the object does not exist. Support depends on the server.
 func (opts *PutObjectOptions) SetMatchETagExcept(etag string) {
 	if opts.customHeaders == nil {
 		opts.customHeaders = http.Header{}
