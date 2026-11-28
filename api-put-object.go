@@ -124,6 +124,7 @@ type PutObjectOptions struct {
 // SetMatchETag makes a write conditional on the current object's ETag matching
 // etag. The condition is sent on both single PUT and multipart completion.
 // Use "*" to require an existing object. Support depends on the server.
+// RDMA uploads reject this option.
 func (opts *PutObjectOptions) SetMatchETag(etag string) {
 	if opts.customHeaders == nil {
 		opts.customHeaders = http.Header{}
@@ -138,6 +139,7 @@ func (opts *PutObjectOptions) SetMatchETag(etag string) {
 // SetMatchETagExcept makes a write conditional on the current object's ETag not
 // matching etag. The condition is sent on both single PUT and multipart completion.
 // Use "*" to require that the object does not exist. Support depends on the server.
+// RDMA uploads reject this option.
 func (opts *PutObjectOptions) SetMatchETagExcept(etag string) {
 	if opts.customHeaders == nil {
 		opts.customHeaders = http.Header{}
@@ -333,6 +335,14 @@ func (c *Client) PutObject(ctx context.Context, bucketName, objectName string, r
 	opts PutObjectOptions,
 ) (info UploadInfo, err error) {
 	if opts.RDMABuffer != nil && c.rdmaEnabled {
+		// The native upload API cannot forward destination conditions. Reject
+		// their presence, including malformed empty values, before any transfer
+		// rather than silently turning a conditional write into an overwrite.
+		for name := range opts.customHeaders {
+			if strings.EqualFold(name, "If-Match") || strings.EqualFold(name, "If-None-Match") {
+				return UploadInfo{}, errInvalidArgument("RDMA uploads do not support conditional writes")
+			}
+		}
 		// A reader alongside the buffer means stream it: libminiocpp pins one
 		// part at a time rather than the whole object, so this carries objects
 		// past the 4 GiB an RDMA descriptor can address and does not ask the

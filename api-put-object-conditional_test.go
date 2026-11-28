@@ -4,6 +4,7 @@ package minio
 
 import (
 	"bytes"
+	"encoding/xml"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -37,11 +38,12 @@ func TestPutObjectConditionalHeaders(t *testing.T) {
 	} {
 		t.Run(route.name, func(t *testing.T) {
 			for _, condition := range []struct {
-				name   string
-				header string
-				etag   string
-				want   string
-				reject bool
+				name          string
+				header        string
+				etag          string
+				want          string
+				reject        bool
+				embeddedError bool
 			}{
 				{name: "unconditional"},
 				{name: "matching ETag", header: "If-Match", etag: "old-etag", want: `"old-etag"`},
@@ -49,7 +51,13 @@ func TestPutObjectConditionalHeaders(t *testing.T) {
 				{name: "new object", header: "If-None-Match", etag: "*", want: "*"},
 				{name: "different ETag", header: "If-None-Match", etag: "old-etag", want: `"old-etag"`},
 				{name: "failed precondition", header: "If-Match", etag: "stale-etag", want: `"stale-etag"`, reject: true},
+				{name: "failed precondition after HTTP 200", header: "If-Match", etag: "stale-etag", want: `"stale-etag"`, reject: true, embeddedError: true},
 			} {
+				// Only multipart completion can fail after keepalive whitespace
+				// has already committed an HTTP 200 response.
+				if condition.embeddedError && route.putOpts.DisableMultipart {
+					continue
+				}
 				t.Run(condition.name, func(t *testing.T) {
 					type request struct {
 						phase  string
@@ -91,7 +99,13 @@ func TestPutObjectConditionalHeaders(t *testing.T) {
 							return
 						}
 						if condition.reject && (phase == "complete" || phase == "single") {
-							w.WriteHeader(http.StatusPreconditionFailed)
+							if condition.embeddedError {
+								w.WriteHeader(http.StatusOK)
+								io.WriteString(w, xml.Header+" \t\r\n ")
+								w.(http.Flusher).Flush()
+							} else {
+								w.WriteHeader(http.StatusPreconditionFailed)
+							}
 							io.WriteString(w, `<Error><Code>PreconditionFailed</Code><Message>ETag changed</Message></Error>`)
 							return
 						}
@@ -146,8 +160,16 @@ func TestPutObjectConditionalHeaders(t *testing.T) {
 						_, err = client.PutObject(t.Context(), "bucket", "object", reader, route.size, opts)
 					}
 					if condition.reject {
-						if code := ToErrorResponse(err).Code; code != "PreconditionFailed" {
-							t.Fatalf("error code = %q, want PreconditionFailed (error %v)", code, err)
+						errResponse := ToErrorResponse(err)
+						if errResponse.Code != "PreconditionFailed" {
+							t.Fatalf("error code = %q, want PreconditionFailed (error %v)", errResponse.Code, err)
+						}
+						wantStatus := http.StatusPreconditionFailed
+						if condition.embeddedError {
+							wantStatus = http.StatusOK
+						}
+						if errResponse.StatusCode != wantStatus {
+							t.Errorf("error HTTP status = %d, want %d", errResponse.StatusCode, wantStatus)
 						}
 					} else if err != nil {
 						t.Fatal(err)
