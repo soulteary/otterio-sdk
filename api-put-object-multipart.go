@@ -249,6 +249,10 @@ func (c *Client) initiateMultipartUpload(ctx context.Context, bucketName, object
 
 	// Set ContentType header.
 	customHeader := opts.Header()
+	// Destination conditions apply when the completed object is committed, not
+	// when the multipart upload is created. Keep opts intact for completion.
+	customHeader.Del("If-Match")
+	customHeader.Del("If-None-Match")
 
 	reqMetadata := requestMetadata{
 		bucketName:   bucketName,
@@ -381,17 +385,28 @@ func (c *Client) uploadPart(ctx context.Context, p uploadPartParams) (ObjectPart
 // completeUploadOpts returns the options to send on CompleteMultipartUpload.
 // Everything that applies to the upload as a whole was already sent with
 // NewMultipartUpload or with the individual parts, so most of the caller's
-// options are deliberately dropped here. Three things must survive: the SSE-C
+// options are deliberately dropped here. The following must survive: the SSE-C
 // key, which has to be repeated on every request touching the object, the
 // auto-checksum, which is computed from the completed parts, and opts.Internal,
 // because MinIO reads x-minio-source-mtime and
 // x-minio-source-replication-request from this request and nowhere else.
+// Conditional write headers must also reach completion, where the destination
+// object is committed. Sending them only at initiation does not protect it.
 func completeUploadOpts(opts PutObjectOptions) PutObjectOptions {
-	return PutObjectOptions{
+	complete := PutObjectOptions{
 		ServerSideEncryption: opts.ServerSideEncryption,
 		AutoChecksum:         opts.AutoChecksum,
 		Internal:             opts.Internal,
 	}
+	for _, name := range []string{"If-Match", "If-None-Match"} {
+		if values, ok := opts.customHeaders[name]; ok {
+			if complete.customHeaders == nil {
+				complete.customHeaders = make(http.Header)
+			}
+			complete.customHeaders[name] = append([]string(nil), values...)
+		}
+	}
+	return complete
 }
 
 // completeMultipartUpload - Completes a multipart upload by assembling previously uploaded parts.
